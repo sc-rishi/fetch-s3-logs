@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fetch S3 Logs Control Panel</title>
+    <style>
+      :root {
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        color: #0f172a;
+        background: #f8fafc;
+        line-height: 1.5;
+      }
+
+      body {
+        margin: 0;
+        padding: 0 2rem 4rem;
+        background: #f8fafc;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0 0 0.5rem;
+        line-height: 1.2;
+      }
+
+      p {
+        margin: 0 0 1rem;
+      }
+
+      .page-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1.5rem;
+        padding: 2rem 0 1rem;
+      }
+
+      .page-header h1 {
+        font-size: 2rem;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 1.5rem;
+      }
+
+      .panel {
+        background: #fff;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: 0 10px 25px -20px rgba(15, 23, 42, 0.65);
+        border: 1px solid #e2e8f0;
+      }
+
+      .panel h2 {
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .panel h3 {
+        font-size: 1rem;
+        margin-top: 1.5rem;
+        color: #0f172a;
+      }
+
+      .form-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .field-group {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+      }
+
+      label {
+        display: block;
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-bottom: 0.35rem;
+      }
+
+      input[type='text'],
+      input[type='number'],
+      input[type='datetime-local'],
+      textarea,
+      select {
+        width: 100%;
+        padding: 0.6rem 0.75rem;
+        border: 1px solid #cbd5f5;
+        border-radius: 0.5rem;
+        font-size: 0.95rem;
+        background: #f8fafc;
+      }
+
+      textarea {
+        min-height: 96px;
+        resize: vertical;
+      }
+
+      .muted {
+        color: #475569;
+        font-size: 0.85rem;
+      }
+
+      .field-inline {
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-end;
+        flex-wrap: wrap;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.25rem 0.55rem;
+        border-radius: 999px;
+        background: #e0f2fe;
+        color: #0369a1;
+        font-size: 0.85rem;
+        margin: 0.2rem 0.2rem 0 0;
+      }
+
+      .chip button {
+        background: none;
+        border: none;
+        color: inherit;
+        cursor: pointer;
+        font-size: 1rem;
+        line-height: 1;
+        padding: 0;
+      }
+
+      .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.95rem;
+      }
+
+      .checkbox-row input {
+        width: auto;
+      }
+
+      .form-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1rem;
+      }
+
+      button {
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.65rem 1rem;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: transform 0.1s ease;
+      }
+
+      button:active {
+        transform: scale(0.98);
+      }
+
+      .primary {
+        background: #2563eb;
+        color: #fff;
+      }
+
+      .secondary {
+        background: #e2e8f0;
+        color: #0f172a;
+      }
+
+      .link-button {
+        background: transparent;
+        color: #2563eb;
+        padding: 0.35rem 0.5rem;
+        text-decoration: underline;
+      }
+
+      .status-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+      }
+
+      .badge {
+        padding: 0.2rem 0.6rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: capitalize;
+      }
+
+      .badge--idle {
+        background: #e2e8f0;
+        color: #475569;
+      }
+
+      .badge--running {
+        background: #fef3c7;
+        color: #92400e;
+      }
+
+      .badge--completed {
+        background: #dcfce7;
+        color: #166534;
+      }
+
+      .badge--failed {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+
+      .progress {
+        width: 100%;
+        height: 12px;
+        border-radius: 999px;
+        background: #e2e8f0;
+        overflow: hidden;
+        margin-bottom: 0.5rem;
+      }
+
+      .progress__bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #2563eb, #38bdf8);
+        transition: width 0.3s ease;
+      }
+
+      #commandPreview {
+        width: 100%;
+        background: #0f172a;
+        color: #e2e8f0;
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        font-family: 'SFMono-Regular', Consolas, Monaco, 'Courier New', monospace;
+        min-height: 80px;
+      }
+
+      .log-viewer {
+        background: #0b1120;
+        color: #e2e8f0;
+        padding: 1rem;
+        border-radius: 0.75rem;
+        min-height: 220px;
+        overflow: auto;
+        border: 1px solid #1e293b;
+        font-size: 0.9rem;
+      }
+
+      ul {
+        padding-left: 1.25rem;
+        margin: 0;
+      }
+
+      ul li {
+        margin-bottom: 0.4rem;
+      }
+
+      @media (max-width: 720px) {
+        body {
+          padding: 0 1rem 2rem;
+        }
+        .page-header {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="page-header">
+      <div>
+        <h1>Fetch S3 Logs Control Panel</h1>
+        <p class="muted">
+          This UI mirrors the <code>fetch-s3-logs.js</code> job: list S3 objects, download with controlled concurrency,
+          apply optional text/field/time filters, normalize output, and keep track of progress.
+        </p>
+      </div>
+      <button type="button" class="link-button" id="copyCliButton">Copy CLI Command</button>
+    </header>
+
+    <main class="layout">
+      <section class="panel" id="overviewPanel">
+        <h2>How the job works</h2>
+        <ul>
+          <li>Lists objects under a bucket/prefix (optionally scoped with <code>--dir</code>, <code>--start-after</code>, <code>--max-keys</code>).</li>
+          <li>Streams each object, gunzips when required, and extracts raw/filtered log lines.</li>
+          <li>Supports substring matching, structured field equals, or OR-of-AND expressions for JSON payloads.</li>
+          <li>Filters by JSON <code>time</code> field using UTC or IST inputs and can sort by time ascending/descending.</li>
+          <li>Writes prettified JSON per S3 object into your local output directory and reports missing matches.</li>
+        </ul>
+        <p class="muted">
+          Provide either a full S3 URL or a bucket + prefix. The region is pinned to <strong>ap-south-1</strong>, matching the CLI script.
+        </p>
+      </section>
+
+      <form id="jobForm" class="panel form-grid">
+        <h2>Job configuration</h2>
+
+        <section>
+          <h3>Source (S3)</h3>
+          <div class="field-group">
+            <div>
+              <label for="s3Url">S3 URL</label>
+              <input type="text" id="s3Url" placeholder="s3://bucket/prefix/" />
+              <p class="muted">Overrides bucket/prefix when provided.</p>
+            </div>
+            <div>
+              <label for="bucket">Bucket</label>
+              <input type="text" id="bucket" placeholder="sc-pm2logs-new" />
+            </div>
+            <div>
+              <label for="prefix">Prefix</label>
+              <input type="text" id="prefix" placeholder="PROD/2025-11-20/sc-integrations-broker-api/" />
+            </div>
+          </div>
+          <div class="field-group">
+            <div>
+              <label for="dir">First-level directory filter (--dir)</label>
+              <input type="text" id="dir" placeholder="Out-logs" />
+            </div>
+            <div>
+              <label for="startAfter">Start after key</label>
+              <input type="text" id="startAfter" placeholder="Optional" />
+            </div>
+            <div>
+              <label for="maxKeys">Max keys per page</label>
+              <input type="number" id="maxKeys" min="1" step="1" />
+            </div>
+          </div>
+          <div class="field-group">
+            <div>
+              <label>Region</label>
+              <input type="text" value="ap-south-1 (fixed in script)" disabled />
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h3>Time & sorting</h3>
+          <div class="field-group">
+            <div>
+              <label for="fromTime">From</label>
+              <input type="datetime-local" id="fromTime" />
+            </div>
+            <div>
+              <label for="toTime">To</label>
+              <input type="datetime-local" id="toTime" />
+            </div>
+            <div>
+              <label for="sortMode">Sort mode</label>
+              <select id="sortMode">
+                <option value="off">Original stream order</option>
+                <option value="nf">nf (newest first)</option>
+                <option value="of">of (oldest first)</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-group">
+            <div class="checkbox-row">
+              <input type="checkbox" id="istToggle" />
+              <label for="istToggle">Interpret from/to as IST (+05:30)</label>
+            </div>
+            <div class="checkbox-row">
+              <input type="checkbox" id="ciToggle" />
+              <label for="ciToggle">Case-insensitive text & field matching (--ci)</label>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h3>Filters</h3>
+          <div class="field-group">
+            <div>
+              <label for="filterText">Filter text (--filter-text)</label>
+              <input type="text" id="filterText" placeholder="Substring to match" />
+            </div>
+            <div>
+              <label for="rawFields">Raw field priority (--raw-field)</label>
+              <input type="text" id="rawFields" placeholder="raw,message,msg,log" />
+              <p class="muted">Comma-separated; first match wins for JSON payloads.</p>
+            </div>
+          </div>
+
+          <div>
+            <label>Filter JSON fields (k=v)</label>
+            <div id="filterFieldList" class="muted">No field filters.</div>
+            <div class="field-inline">
+              <div style="flex: 1">
+                <label for="filterFieldKey" class="muted">Key</label>
+                <input type="text" id="filterFieldKey" placeholder="broker" />
+              </div>
+              <div style="flex: 1">
+                <label for="filterFieldValue" class="muted">Value</label>
+                <input type="text" id="filterFieldValue" placeholder="hdfcsky" />
+              </div>
+              <button type="button" class="secondary" id="addFilterFieldBtn">Add</button>
+            </div>
+          </div>
+
+          <div>
+            <label for="filterExpr">Advanced OR-of-AND expressions</label>
+            <textarea id="filterExpr" placeholder="broker=hdfcsky and brokerName=hdfcsky"></textarea>
+            <p class="muted">One expression per line. Lines are ORed, each line can chain multiple <code>and</code> clauses.</p>
+          </div>
+        </section>
+
+        <section>
+          <h3>Output & processing</h3>
+          <div class="field-group">
+            <div>
+              <label for="outDir">Output directory (--out)</label>
+              <input type="text" id="outDir" placeholder="./logs" />
+            </div>
+            <div>
+              <label for="concurrency">Concurrency (--concurrency)</label>
+              <input type="number" id="concurrency" min="1" max="32" />
+            </div>
+          </div>
+        </section>
+
+        <div class="form-actions">
+          <button type="button" class="secondary" id="resetBtn">Reset to defaults</button>
+          <button type="button" class="secondary" id="generateCmdBtn">Generate CLI command</button>
+          <button type="submit" class="primary">Start job</button>
+        </div>
+      </form>
+
+      <section class="panel" id="statusPanel">
+        <h2>Status & logs</h2>
+        <div class="status-row">
+          <span>Job status</span>
+          <span id="statusBadge" class="badge badge--idle">Idle</span>
+        </div>
+        <div class="progress" aria-label="Job progress">
+          <div class="progress__bar" id="progressBar"></div>
+        </div>
+        <p id="progressLabel" class="muted">Waiting to start.</p>
+        <label for="commandPreview">CLI command preview</label>
+        <textarea id="commandPreview" readonly spellcheck="false"></textarea>
+        <p class="muted">Use this if you prefer to run the Node.js script manually.</p>
+        <button type="button" class="primary" id="openExplorerBtn" style="display: none">Open Log Explorer</button>
+        <pre id="logOutput" class="log-viewer"></pre>
+      </section>
+    </main>
+
+    <script>
+      const DEFAULT_FORM_VALUES = {
+        s3Url: 's3://sc-pm2logs-new/PROD/2025-11-20/sc-integrations-broker-api/',
+        bucket: '',
+        prefix: '',
+        dir: 'Out-logs',
+        startAfter: '',
+        maxKeys: 1000,
+        fromTime: '2025-11-20T12:00',
+        toTime: '2025-11-20T16:00',
+        sort: 'nf',
+        ist: true,
+        ci: false,
+        filterText: '',
+        rawFields: 'raw,message,msg,log',
+        filterExpr: '',
+        outDir: './logs',
+        concurrency: 4,
+      };
+      const SIMULATED_OBJECT_COUNT = 24;
+
+      const DEFAULT_FILTER_FIELDS_TEXT = 'broker=hdfcsky, brokerName=hdfcsky';
+      let filterFieldsState = parseFilterFieldList(DEFAULT_FILTER_FIELDS_TEXT);
+
+      const statusBadge = document.getElementById('statusBadge');
+      const progressBar = document.getElementById('progressBar');
+      const progressLabel = document.getElementById('progressLabel');
+      const logOutput = document.getElementById('logOutput');
+      const commandPreview = document.getElementById('commandPreview');
+      const filterFieldList = document.getElementById('filterFieldList');
+      const openExplorerBtn = document.getElementById('openExplorerBtn');
+      let lastOutDir = DEFAULT_FORM_VALUES.outDir;
+      let backendProgress = { total: null, processed: 0, done: false };
+
+      document.getElementById('jobForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const config = collectConfig();
+        try {
+          validateConfig(config);
+        } catch (err) {
+          appendLog(err.message);
+          setStatus('failed');
+          return;
+        }
+        updateCommandPreview(config);
+        lastOutDir = config.outDir || DEFAULT_FORM_VALUES.outDir;
+        await startJob(config);
+      });
+
+      document.getElementById('resetBtn').addEventListener('click', () => {
+        filterFieldsState = parseFilterFieldList(DEFAULT_FILTER_FIELDS_TEXT);
+        applyDefaults();
+        lastOutDir = DEFAULT_FORM_VALUES.outDir;
+        appendLog('Reset to default configuration.');
+      });
+
+      document.getElementById('generateCmdBtn').addEventListener('click', () => {
+        const config = collectConfig();
+        updateCommandPreview(config);
+        appendLog('Updated CLI command preview.');
+      });
+
+      document.getElementById('copyCliButton').addEventListener('click', async () => {
+        const text = commandPreview.value;
+        if (!text.trim()) return;
+        try {
+          await navigator.clipboard.writeText(text);
+          appendLog('CLI command copied to clipboard.');
+        } catch {
+          appendLog('Unable to access clipboard.');
+        }
+      });
+
+      openExplorerBtn.addEventListener('click', () => {
+        if (!lastOutDir) return;
+        const publicBase = getPublicBasePath(lastOutDir);
+        const url = `log-explorer.html?base=${encodeURIComponent(publicBase)}`;
+        window.open(url, '_blank', 'noopener');
+      });
+
+      document.getElementById('addFilterFieldBtn').addEventListener('click', () => {
+        const keyInput = document.getElementById('filterFieldKey');
+        const valueInput = document.getElementById('filterFieldValue');
+        const key = keyInput.value.trim();
+        const value = valueInput.value.trim();
+        if (!key || !value) {
+          appendLog('Provide both key and value for a field filter.');
+          return;
+        }
+        filterFieldsState.push({ name: key, value });
+        keyInput.value = '';
+        valueInput.value = '';
+        renderFilterFields();
+      });
+
+      function parseFilterFieldList(text) {
+        if (!text) return [];
+        return text
+          .split(',')
+          .map((entry) => entry.trim())
+          .filter(Boolean)
+          .map((entry) => {
+            const [name, value] = entry.split('=');
+            if (!name || value === undefined) return null;
+            return { name: name.trim(), value: value.trim() };
+          })
+          .filter(Boolean);
+      }
+
+      function parseExpressionInput(input) {
+        if (!input) return [];
+        return input
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .map((line) => {
+            const clauses = line.split(/\s+and\s+/i);
+            const specs = [];
+            for (const clause of clauses) {
+              const [name, value] = clause.split('=');
+              if (!name || value === undefined) continue;
+              specs.push({ name: name.trim(), value: value.trim() });
+            }
+            return specs;
+          })
+          .filter((specs) => specs.length > 0);
+      }
+
+      function renderFilterFields() {
+        if (!filterFieldsState.length) {
+          filterFieldList.textContent = 'No field filters.';
+          return;
+        }
+        filterFieldList.innerHTML = '';
+        filterFieldsState.forEach((spec, index) => {
+          const chip = document.createElement('span');
+          chip.className = 'chip';
+          chip.textContent = `${spec.name}=${spec.value}`;
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.textContent = '×';
+          btn.addEventListener('click', () => {
+            filterFieldsState.splice(index, 1);
+            renderFilterFields();
+          });
+          chip.appendChild(btn);
+          filterFieldList.appendChild(chip);
+        });
+      }
+
+      function normalizeDateInput(value) {
+        if (!value) return '';
+        return value.length === 16 ? `${value}:00` : value;
+      }
+
+      function collectConfig() {
+        return {
+          s3Url: document.getElementById('s3Url').value.trim(),
+          bucket: document.getElementById('bucket').value.trim(),
+          prefix: document.getElementById('prefix').value.trim(),
+          dir: document.getElementById('dir').value.trim(),
+          startAfter: document.getElementById('startAfter').value.trim(),
+          maxKeys: Number(document.getElementById('maxKeys').value) || undefined,
+          from: normalizeDateInput(document.getElementById('fromTime').value),
+          to: normalizeDateInput(document.getElementById('toTime').value),
+          sort: document.getElementById('sortMode').value,
+          ist: document.getElementById('istToggle').checked,
+          ci: document.getElementById('ciToggle').checked,
+          filterText: document.getElementById('filterText').value.trim(),
+          rawFields: document
+            .getElementById('rawFields')
+            .value.split(',')
+            .map((entry) => entry.trim())
+            .filter(Boolean),
+          filterFields: filterFieldsState.slice(),
+          filterFieldExprClauses: parseExpressionInput(document.getElementById('filterExpr').value),
+          outDir: document.getElementById('outDir').value.trim(),
+          concurrency: Number(document.getElementById('concurrency').value) || 4,
+        };
+      }
+
+      function validateConfig(config) {
+        if (!config.s3Url && !config.bucket) {
+          throw new Error('Provide an S3 URL or bucket/prefix.');
+        }
+        if (!config.outDir) {
+          throw new Error('Output directory (--out) is required.');
+        }
+      }
+
+      function buildCliCommand(config) {
+        const parts = ['node fetch-s3-logs.js'];
+        if (config.s3Url) {
+          parts.push(`--s3-url "${config.s3Url}"`);
+        } else {
+          if (config.bucket) parts.push(`--bucket "${config.bucket}"`);
+          if (config.prefix) parts.push(`--prefix "${config.prefix}"`);
+        }
+        parts.push(`--out "${config.outDir}"`);
+        if (config.dir) parts.push(`--dir "${config.dir}"`);
+        if (config.startAfter) parts.push(`--start-after "${config.startAfter}"`);
+        if (config.maxKeys && config.maxKeys !== 1000) parts.push(`--max-keys ${config.maxKeys}`);
+        if (config.from) parts.push(`--from ${config.from}`);
+        if (config.to) parts.push(`--to ${config.to}`);
+        if (config.ist) parts.push('--ist');
+        if (config.filterText) parts.push(`--filter-text "${config.filterText}"`);
+        config.filterFields.forEach((spec) => {
+          parts.push(`--filter-field "${spec.name}=${spec.value}"`);
+        });
+        if (config.filterFieldExprClauses.length) {
+          config.filterFieldExprClauses.forEach((clause) => {
+            const clauseText = clause.map((spec) => `${spec.name}=${spec.value}`).join(' and ');
+            parts.push(`--filter-field "${clauseText}"`);
+          });
+        }
+        if (config.rawFields.length) {
+          parts.push(`--raw-field "${config.rawFields.join(',')}"`);
+        }
+        if (config.sort && config.sort !== 'off') {
+          parts.push(`--sort ${config.sort}`);
+        }
+        if (config.ci) parts.push('--ci');
+        if (config.concurrency && config.concurrency !== 4) {
+          parts.push(`--concurrency ${config.concurrency}`);
+        }
+        return parts.join(' ');
+      }
+
+      function updateCommandPreview(config) {
+        commandPreview.value = buildCliCommand(config);
+      }
+
+      async function startJob(config) {
+        setStatus('running');
+        toggleExplorerButton(false);
+        resetBackendProgress();
+        updateProgress(0, 'Preparing job…');
+        appendLog('------');
+        appendLog('Starting job with configuration:');
+        appendLog(JSON.stringify(config, null, 2));
+        try {
+          await attemptBackendJob(config);
+          setStatus('completed');
+          toggleExplorerButton(true);
+          appendLog('Backend job finished.');
+        } catch (err) {
+          appendLog(`Backend unavailable (${err.message}). Running client-side simulation.`);
+          await simulateJob();
+          toggleExplorerButton(true);
+        }
+      }
+
+      async function attemptBackendJob(payload) {
+        const resp = await fetch('/api/fetch-s3-logs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!resp.ok) {
+          throw new Error(`API responded with ${resp.status}`);
+        }
+        if (!resp.body || !resp.body.getReader) {
+          const result = await resp.json().catch(() => ({}));
+          appendLog(JSON.stringify(result, null, 2));
+          return;
+        }
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          if (value) {
+            const text = decoder.decode(value, { stream: true });
+            handleBackendProgressChunk(text);
+            appendLog(text);
+          }
+        }
+        if (!backendProgress.done) {
+          updateProgress(1, 'Job completed');
+        }
+      }
+
+      function simulateJob() {
+        const total = Math.max(1, SIMULATED_OBJECT_COUNT);
+        let processed = 0;
+        return new Promise((resolve) => {
+          const interval = setInterval(() => {
+            processed += 1;
+            const percent = Math.min(1, processed / total);
+            appendLog(`[sim] Processed object ${processed}/${total}`);
+            updateProgress(percent, `${processed}/${total} objects processed`);
+            if (processed >= total) {
+              clearInterval(interval);
+              appendLog('[sim] Job completed locally.');
+              setStatus('completed');
+              resolve();
+            }
+          }, 450);
+        });
+      }
+
+      function setStatus(state) {
+        const map = {
+          idle: { text: 'Idle', className: 'badge--idle' },
+          running: { text: 'Running', className: 'badge--running' },
+          completed: { text: 'Completed', className: 'badge--completed' },
+          failed: { text: 'Failed', className: 'badge--failed' },
+        };
+        const next = map[state] || map.idle;
+        statusBadge.textContent = next.text;
+        statusBadge.className = `badge ${next.className}`;
+      }
+
+      function toggleExplorerButton(visible) {
+        openExplorerBtn.style.display = visible ? 'inline-flex' : 'none';
+        openExplorerBtn.disabled = !visible;
+      }
+
+      function resetBackendProgress() {
+        backendProgress = { total: null, processed: 0, done: false };
+      }
+
+      function handleBackendProgressChunk(text) {
+        if (!text) return;
+        const lines = text.split(/\r?\n/).filter(Boolean);
+        lines.forEach((line) => {
+          const totalMatch = line.match(/Found\s+(\d+)\s+object\(s\)/i);
+          if (totalMatch) {
+            backendProgress.total = Number(totalMatch[1]);
+            backendProgress.processed = 0;
+            updateProgress(0, `0/${backendProgress.total} objects processed`);
+          }
+          if (/Processing\s+s3:\/\//i.test(line)) {
+            backendProgress.processed += 1;
+            const { processed, total } = backendProgress;
+            if (total && total > 0) {
+              updateProgress(Math.min(1, processed / total), `${processed}/${total} objects processed`);
+            } else {
+              updateProgress(0, `${processed} object(s) processed`);
+            }
+          }
+          if (/Completed successfully/i.test(line) || /Completed with \d+ failure/i.test(line)) {
+            backendProgress.done = true;
+            updateProgress(1, 'Job completed');
+          }
+        });
+      }
+
+      function getPublicBasePath(dir) {
+        const raw = (dir || '').trim().replace(/\\/g, '/');
+        if (!raw) return 'logs';
+        if (/^https?:\/\//i.test(raw)) return raw.replace(/\/+$/, '');
+        const withoutDot = raw.replace(/^\.\/+/, '').replace(/\/+$/, '');
+        return withoutDot || 'logs';
+      }
+
+      function updateProgress(value, label) {
+        const pct = Math.max(0, Math.min(1, value)) * 100;
+        progressBar.style.width = `${pct}%`;
+        progressLabel.textContent = label || `${pct.toFixed(1)}%`;
+      }
+
+      function appendLog(message) {
+        const timestamp = new Date().toISOString();
+        logOutput.textContent += `[${timestamp}] ${message}\n`;
+        logOutput.scrollTop = logOutput.scrollHeight;
+      }
+
+      function applyDefaults() {
+        document.getElementById('s3Url').value = DEFAULT_FORM_VALUES.s3Url;
+        document.getElementById('bucket').value = DEFAULT_FORM_VALUES.bucket;
+        document.getElementById('prefix').value = DEFAULT_FORM_VALUES.prefix;
+        document.getElementById('dir').value = DEFAULT_FORM_VALUES.dir;
+        document.getElementById('startAfter').value = DEFAULT_FORM_VALUES.startAfter;
+        document.getElementById('maxKeys').value = DEFAULT_FORM_VALUES.maxKeys;
+        document.getElementById('fromTime').value = DEFAULT_FORM_VALUES.fromTime;
+        document.getElementById('toTime').value = DEFAULT_FORM_VALUES.toTime;
+        document.getElementById('sortMode').value = DEFAULT_FORM_VALUES.sort;
+        document.getElementById('istToggle').checked = DEFAULT_FORM_VALUES.ist;
+        document.getElementById('ciToggle').checked = DEFAULT_FORM_VALUES.ci;
+        document.getElementById('filterText').value = DEFAULT_FORM_VALUES.filterText;
+        document.getElementById('rawFields').value = DEFAULT_FORM_VALUES.rawFields;
+        document.getElementById('filterExpr').value = DEFAULT_FORM_VALUES.filterExpr;
+        document.getElementById('outDir').value = DEFAULT_FORM_VALUES.outDir;
+        document.getElementById('concurrency').value = DEFAULT_FORM_VALUES.concurrency;
+        renderFilterFields();
+        updateCommandPreview(collectConfig());
+        setStatus('idle');
+        updateProgress(0, 'Waiting to start.');
+        toggleExplorerButton(false);
+      }
+
+      applyDefaults();
+      appendLog('UI ready. Configure your job and press "Start job".');
+    </script>
+  </body>
+</html>
+

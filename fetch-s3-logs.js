@@ -37,6 +37,7 @@ const zlib = require('zlib');
 const { S3Client, ListObjectsV2Command, GetObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
 
 const pipe = promisify(pipeline);
+const REPO_ROOT = path.resolve(__dirname);
 
 // Hardcoded AWS environment for this job/script
 process.env.AWS_PROFILE = 'smallcase';
@@ -49,7 +50,7 @@ const DEFAULTS = {
   S3_URL: `s3://sc-pm2logs-new/PROD/${DATE}/sc-integrations-broker-api/`,
   OUT_DIR: './logs',
   IST: true,
-  FROM: `${DATE}T15:30:00`,
+  FROM: `${DATE}T12:00:00`,
   TO: `${DATE}T16:00:00`,
   FILTER_TEXT: undefined, // e.g. 'hdfcsky'
   FILTER_FIELD: 'broker=hdfcsky, brokerName=hdfcsky', // string, comma-separated, or array of 'k=v'
@@ -210,6 +211,78 @@ function computeOutputPath(baseDir, key) {
 function computeFilteredOutputPath(rawOutPath) {
   if (rawOutPath.endsWith('.raw.log')) return rawOutPath.replace(/\.raw\.log$/, '.filtered.log');
   return `${rawOutPath}.filtered.log`;
+}
+
+function toWebPath(input) {
+  if (!input) return '';
+  return String(input).split(path.sep).join('/');
+}
+
+function countTreeNodes(nodes) {
+  if (!Array.isArray(nodes)) return 0;
+  let total = 0;
+  for (const node of nodes) {
+    total += 1;
+    if (node.children) total += countTreeNodes(node.children);
+  }
+  return total;
+}
+
+function buildDirectoryTree(baseDir, currentDir = baseDir) {
+  if (!fs.existsSync(currentDir)) return [];
+  const entries = fs.readdirSync(currentDir, { withFileTypes: true });
+  const nodes = [];
+  for (const entry of entries) {
+    if (entry.name === 'log-manifest.json') continue;
+    const fullPath = path.join(currentDir, entry.name);
+    const relativeToBase = toWebPath(path.relative(baseDir, fullPath));
+    const relativeToRepo = toWebPath(path.relative(REPO_ROOT, fullPath));
+    const node = {
+      name: entry.name,
+      type: entry.isDirectory() ? 'dir' : 'file',
+      relativePath: relativeToBase,
+      publicPath: relativeToRepo,
+    };
+    if (entry.isDirectory()) {
+      node.children = buildDirectoryTree(baseDir, fullPath);
+    } else {
+      try {
+        const stat = fs.statSync(fullPath);
+        node.size = stat.size;
+      } catch {
+        node.size = undefined;
+      }
+    }
+    nodes.push(node);
+  }
+  nodes.sort((a, b) => {
+    if (a.type === b.type) return a.name.localeCompare(b.name);
+    return a.type === 'dir' ? -1 : 1;
+  });
+  return nodes;
+}
+
+function writeLogManifest(outDir) {
+  try {
+    const tree = buildDirectoryTree(outDir);
+    const relativeBaseRaw = path.relative(REPO_ROOT, outDir) || '.';
+    const relativeBase = toWebPath(relativeBaseRaw) || '.';
+    const publicBase = relativeBase === '.' ? '' : relativeBase;
+    const manifest = {
+      baseDir: outDir,
+      relativeBase,
+      publicBase,
+      generatedAt: new Date().toISOString(),
+      totalEntries: countTreeNodes(tree),
+      tree,
+    };
+    const manifestPath = path.join(outDir, 'log-manifest.json');
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+    return manifestPath;
+  } catch (err) {
+    console.warn(`Unable to write log manifest for ${outDir}:`, err.message || err);
+    return null;
+  }
 }
 
 function createDownloadProgressBar(total) {
@@ -677,6 +750,8 @@ async function run() {
     args.prefix = parsed.prefix || '';
   }
 
+  const resolvedOutDir = path.isAbsolute(args.outDir) ? args.outDir : path.resolve(__dirname, args.outDir);
+  args.outDir = resolvedOutDir;
   ensureDir(args.outDir);
 
   const s3 = new S3Client({
@@ -754,6 +829,11 @@ async function run() {
     };
     maybeStartNext();
   });
+
+  const manifestPath = writeLogManifest(args.outDir);
+  if (manifestPath) {
+    console.log(`Updated log manifest at ${manifestPath}. Frontend explorer reads this file directly.`);
+  }
 
   if (failed > 0) {
     console.log(`Completed with ${failed} failure(s).`);

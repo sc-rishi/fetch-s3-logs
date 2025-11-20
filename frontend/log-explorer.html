@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Log Explorer</title>
+    <style>
+      :root {
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        color: #0f172a;
+        background: #0f172a;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: radial-gradient(circle at top, #1e293b, #0f172a 60%);
+        color: #e2e8f0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      header {
+        padding: 1.25rem 2rem;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.15);
+        background: rgba(15, 23, 42, 0.85);
+        backdrop-filter: blur(8px);
+      }
+
+      header h1 {
+        font-size: 1.5rem;
+        margin: 0;
+      }
+
+      header p {
+        margin: 0.35rem 0 0;
+        color: #94a3b8;
+        font-size: 0.95rem;
+      }
+
+      main {
+        flex: 1;
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        min-height: 0;
+      }
+
+      nav {
+        border-right: 1px solid rgba(226, 232, 240, 0.15);
+        background: rgba(15, 23, 42, 0.7);
+        padding: 1rem;
+        overflow-y: auto;
+      }
+
+      .tree-item {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.35rem 0.5rem;
+        border-radius: 0.4rem;
+        cursor: pointer;
+        color: #cbd5f5;
+        font-size: 0.92rem;
+      }
+
+      .tree-item:hover {
+        background: rgba(59, 130, 246, 0.12);
+      }
+
+      .tree-item.active {
+        background: rgba(59, 130, 246, 0.25);
+        color: #fff;
+      }
+
+      .tree-children {
+        margin-left: 1.25rem;
+        border-left: 1px dashed rgba(148, 163, 184, 0.4);
+        padding-left: 0.75rem;
+      }
+
+      .icon {
+        font-size: 0.95rem;
+        opacity: 0.9;
+      }
+
+      section.viewer {
+        padding: 1.25rem 1.5rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+
+      .viewer-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+      }
+
+      .viewer-header h2 {
+        margin: 0;
+        font-size: 1.1rem;
+      }
+
+      .viewer-header span {
+        color: #94a3b8;
+        font-size: 0.9rem;
+      }
+
+      .log-output {
+        flex: 1;
+        background: rgba(2, 6, 23, 0.95);
+        border-radius: 0.75rem;
+        border: 1px solid rgba(15, 23, 42, 0.8);
+        padding: 1rem;
+        font-family: 'SFMono-Regular', Consolas, Monaco, 'Courier New', monospace;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        overflow: auto;
+        white-space: pre-wrap;
+      }
+
+      .placeholder {
+        color: #64748b;
+        font-style: italic;
+      }
+
+      .toolbar {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      button {
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.45rem 0.75rem;
+        font-size: 0.85rem;
+        cursor: pointer;
+        background: rgba(59, 130, 246, 0.2);
+        color: #e2e8f0;
+      }
+
+      button:hover:not(:disabled) {
+        background: rgba(59, 130, 246, 0.35);
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      @media (max-width: 900px) {
+        main {
+          grid-template-columns: 1fr;
+        }
+        nav {
+          border-right: none;
+          border-bottom: 1px solid rgba(226, 232, 240, 0.15);
+          max-height: 260px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Log Explorer</h1>
+      <p id="basePathLabel">Target directory: ./logs</p>
+    </header>
+    <main>
+      <nav id="treeContainer">
+        <p class="placeholder">Loading directory tree…</p>
+      </nav>
+      <section class="viewer">
+        <div class="viewer-header">
+          <div>
+            <h2 id="fileTitle">Select a log file</h2>
+            <span id="fileMeta">No file chosen</span>
+          </div>
+          <div class="toolbar">
+            <button type="button" id="refreshTreeBtn">Refresh tree</button>
+            <button type="button" id="openInNewTabBtn" disabled>Open raw file</button>
+          </div>
+        </div>
+        <pre id="logViewer" class="log-output placeholder">Waiting for input…</pre>
+      </section>
+    </main>
+
+    <script>
+      const baseDirParam = new URLSearchParams(window.location.search).get('base') || 'logs';
+      const normalizedBaseParam = normalizeBasePath(baseDirParam);
+      const treeContainer = document.getElementById('treeContainer');
+      const logViewer = document.getElementById('logViewer');
+      const fileTitle = document.getElementById('fileTitle');
+      const fileMeta = document.getElementById('fileMeta');
+      const basePathLabel = document.getElementById('basePathLabel');
+      const openInNewTabBtn = document.getElementById('openInNewTabBtn');
+      const refreshTreeBtn = document.getElementById('refreshTreeBtn');
+      let activePath = null;
+      let treeData = [];
+      let manifestMeta = null;
+
+      basePathLabel.textContent = `Target directory: ${normalizedBaseParam}`;
+
+      refreshTreeBtn.addEventListener('click', loadTree);
+      openInNewTabBtn.addEventListener('click', () => {
+        if (activePath) window.open(activePath, '_blank', 'noopener');
+      });
+
+      async function loadTree() {
+        treeContainer.innerHTML = '<p class="placeholder">Loading directory tree…</p>';
+        try {
+          const resp = await fetch(getManifestUrl());
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          manifestMeta = await resp.json();
+          treeData = manifestMeta.tree || [];
+          basePathLabel.textContent = `Target directory: ${manifestMeta.relativeBase || manifestMeta.baseDir || normalizedBaseParam}`;
+          console.log(manifestMeta, basePathLabel.textContent);
+        } catch (err) {
+          console.warn('Falling back to sample tree:', err.message);
+          manifestMeta = {
+            relativeBase: normalizedBaseParam,
+            publicBase: normalizedBaseParam,
+            tree: getSampleTree(),
+          };
+          treeData = manifestMeta.tree;
+          basePathLabel.textContent = `Target directory: ${manifestMeta.relativeBase} (sample data)`;
+        }
+        renderTree();
+      }
+
+      function renderTree() {
+        treeContainer.innerHTML = '';
+        if (!treeData.length) {
+          treeContainer.innerHTML = '<p class="placeholder">No files found.</p>';
+          return;
+        }
+        treeData.forEach((entry) => {
+          treeContainer.appendChild(renderNode(entry));
+        });
+      }
+
+      function renderNode(node, depth = 0) {
+        const wrapper = document.createElement('div');
+        const item = document.createElement('div');
+        item.className = 'tree-item';
+        item.style.paddingLeft = `${depth * 0.5}rem`;
+        const publicUrl = getNodePublicUrl(node);
+        item.dataset.publicPath = publicUrl;
+        item.innerHTML = `<span class="icon">${node.type === 'dir' ? '📁' : '📄'}</span> <span>${node.name}</span>`;
+        let childrenContainer = null;
+        if (node.type === 'file') {
+          item.addEventListener('click', () => selectFile(node));
+        } else {
+          let expanded = depth < 1;
+          item.addEventListener('click', () => {
+            expanded = !expanded;
+            if (childrenContainer) {
+              childrenContainer.style.display = expanded ? 'block' : 'none';
+            }
+          });
+        }
+        wrapper.appendChild(item);
+        if (node.type === 'dir' && node.children?.length) {
+          childrenContainer = document.createElement('div');
+          childrenContainer.className = 'tree-children';
+          childrenContainer.style.display = depth < 1 ? 'block' : 'none';
+          node.children.forEach((child) => {
+            childrenContainer.appendChild(renderNode(child, depth + 1));
+          });
+          wrapper.appendChild(childrenContainer);
+        }
+        return wrapper;
+      }
+
+      async function selectFile(node) {
+        const publicUrl = getNodePublicUrl(node);
+        activePath = publicUrl;
+        document.querySelectorAll('.tree-item').forEach((el) => el.classList.remove('active'));
+        const match = treeContainer.querySelector(`.tree-item[data-public-path="${CSS.escape(publicUrl)}"]`);
+        if (match) match.classList.add('active');
+        fileTitle.textContent = node.name;
+        fileMeta.textContent = node.relativePath || publicUrl;
+        openInNewTabBtn.disabled = false;
+        logViewer.textContent = 'Loading file…';
+        logViewer.classList.remove('placeholder');
+        try {
+          const resp = await fetch(publicUrl);
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const text = await resp.text();
+          logViewer.textContent = text || '(empty file)';
+        } catch (err) {
+          console.warn('Falling back to sample content:', err.message);
+          logViewer.textContent = getSampleFile(publicUrl);
+        }
+      }
+
+      function getManifestUrl() {
+        if (/^https?:\/\//i.test(normalizedBaseParam)) {
+          return `${normalizedBaseParam.replace(/\/+$/, '')}/log-manifest.json`;
+        }
+        const trimmed = normalizedBaseParam.replace(/\/+$/, '');
+        if (!trimmed) return '/log-manifest.json';
+        return `/${trimmed}/log-manifest.json`.replace(/\/{2,}/g, '/');
+      }
+
+      function getNodePublicUrl(node) {
+        const candidate = node.publicPath || buildFallbackPublicPath(node);
+        if (/^https?:\/\//i.test(candidate)) return candidate;
+        const normalized = candidate.replace(/\\/g, '/');
+        return normalized.startsWith('/') ? normalized : `/${normalized}`;
+      }
+
+      function buildFallbackPublicPath(node) {
+        const base = manifestMeta?.publicBase || normalizedBaseParam;
+        const rel = node.relativePath || node.name;
+        if (/^https?:\/\//i.test(base)) return `${base.replace(/\/+$/, '')}/${rel}`.replace(/\/{2,}/g, '/');
+        const combined = [base, rel].filter(Boolean).join('/');
+        return combined.replace(/\/{2,}/g, '/');
+      }
+
+      function normalizeBasePath(input) {
+        const raw = (input || '').trim().replace(/\\/g, '/');
+        if (!raw) return 'logs';
+        if (/^https?:\/\//i.test(raw)) return raw.replace(/\/+$/, '');
+        const withoutDot = raw.replace(/^\.\/+/, '').replace(/\/+$/, '');
+        return withoutDot || 'logs';
+      }
+
+      function getSampleTree() {
+        const prefix = normalizedBaseParam ? `${normalizedBaseParam.replace(/\/+$/, '')}/` : '';
+        const dir = (name, relativePath, children = []) => ({
+          name,
+          type: 'dir',
+          relativePath,
+          publicPath: `${prefix}${relativePath}`.replace(/\/{2,}/g, '/'),
+          children,
+        });
+        const file = (name, relativePath) => ({
+          name,
+          type: 'file',
+          relativePath,
+          publicPath: `${prefix}${relativePath}`.replace(/\/{2,}/g, '/'),
+        });
+        return [
+          dir('PROD', 'PROD', [
+            dir('2025-11-20', 'PROD/2025-11-20', [
+              dir('sc-integrations-broker-api', 'PROD/2025-11-20/sc-integrations-broker-api', [
+                dir('Out-logs', 'PROD/2025-11-20/sc-integrations-broker-api/Out-logs', [
+                  file(
+                    'sc-integrations-broker-api-out.log-10.137.0.149.filtered.log',
+                    'PROD/2025-11-20/sc-integrations-broker-api/Out-logs/sc-integrations-broker-api-out.log-10.137.0.149.filtered.log'
+                  ),
+                  file(
+                    'sc-integrations-broker-api-out.log-2025-11-20-1763632801-10.137.0.189.filtered.log',
+                    'PROD/2025-11-20/sc-integrations-broker-api/Out-logs/sc-integrations-broker-api-out.log-2025-11-20-1763632801-10.137.0.189.filtered.log'
+                  ),
+                ]),
+              ]),
+            ]),
+          ]),
+        ];
+      }
+
+      function getSampleFile(publicPath) {
+        return (
+          `[sample] File: ${publicPath}\n` +
+          '[2025-11-20T12:34:56.123Z] {"level":"info","message":"Processed order","broker":"hdfcsky"}\n' +
+          '[2025-11-20T12:35:10.987Z] {"level":"error","message":"Timeout contacting vendor","broker":"hdfcsky"}\n'
+        );
+      }
+
+      loadTree();
+    </script>
+  </body>
+</html>
+
