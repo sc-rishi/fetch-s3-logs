@@ -43,19 +43,20 @@ process.env.AWS_PROFILE = 'smallcase';
 process.env.AWS_SDK_LOAD_CONFIG = '1';
 process.env.AWS_REGION = 'ap-south-1';
 process.env.AWS_DEFAULT_REGION = 'ap-south-1';
-
+const DATE = '2025-11-20';
 // Script-level defaults (can be edited directly instead of passing CLI flags)
 const DEFAULTS = {
-  S3_URL: 's3://sc-pm2logs-new/PROD/2025-11-20/sc-integrations-broker-api/',
+  S3_URL: `s3://sc-pm2logs-new/PROD/${DATE}/sc-integrations-broker-api/`,
   OUT_DIR: './logs',
   IST: true,
-  FROM: '2025-11-20T13:00:00',
-  TO: '2025-11-20T15:00:00',
+  FROM: `${DATE}T15:30:00`,
+  TO: `${DATE}T16:00:00`,
   FILTER_TEXT: undefined, // e.g. 'hdfcsky'
   FILTER_FIELD: 'broker=hdfcsky, brokerName=hdfcsky', // string, comma-separated, or array of 'k=v'
   CONCURRENCY: 4,
   SORT: 'nf', // 'nf' | 'of' (new first | old first)
-  CI: false, // case-insensitive matching for text and field
+  CI: false, // case-insensitive matching for text and field,
+  DIR: 'Out-logs',
 };
 
 function printHelpAndExit(code = 1) {
@@ -73,7 +74,7 @@ function printHelpAndExit(code = 1) {
       '  --raw-field <a,b,c>        Comma-separated field names to try for raw logs (default: raw,message,msg,log)',
       '  --start-after <key>        Start after this key when listing (optional)',
       '  --max-keys <n>             Max keys per list page (default: 1000)',
-      '  --dir <name>               Only include this first-level subdirectory under the prefix',
+      '  --dir <name>               Only include this first-level subdirectory under the prefix (default: Out-logs)',
       '  --from <ISO|epochMs>       Filter lines whose JSON "time" >= this',
       '  --to <ISO|epochMs>         Filter lines whose JSON "time" <= this',
       '  --ist                      Interpret --from/--to as IST (UTC+05:30)',
@@ -209,6 +210,54 @@ function computeOutputPath(baseDir, key) {
 function computeFilteredOutputPath(rawOutPath) {
   if (rawOutPath.endsWith('.raw.log')) return rawOutPath.replace(/\.raw\.log$/, '.filtered.log');
   return `${rawOutPath}.filtered.log`;
+}
+
+function createDownloadProgressBar(total) {
+  if (!Number.isFinite(total) || total <= 0) {
+    return {
+      render: () => {},
+      tick: () => {},
+    };
+  }
+  const width = 32;
+  const isTTY = !!process.stdout.isTTY;
+  let completed = 0;
+  let lastLogged = '';
+  const filledGlyph = isTTY ? '\x1b[47m \x1b[0m' : '#';
+  const emptyGlyph = isTTY ? '\x1b[40m \x1b[0m' : '-';
+  const makeBar = (count, glyph) => {
+    if (count <= 0) return '';
+    if (!isTTY) return glyph.repeat(count);
+    return Array.from({ length: count }, () => glyph).join('');
+  };
+
+  const draw = () => {
+    const ratio = total === 0 ? 0 : completed / total;
+    const filled = Math.round(ratio * width);
+    const bar = `${makeBar(filled, filledGlyph)}${makeBar(Math.max(0, width - filled), emptyGlyph)}`;
+    const line = `Downloading [${bar}] ${(ratio * 100).toFixed(1)}% (${completed}/${total})`;
+    if (isTTY) {
+      readline.clearLine(process.stdout, 0);
+      readline.cursorTo(process.stdout, 0);
+      process.stdout.write(line);
+    } else if (line !== lastLogged) {
+      console.log(line);
+      lastLogged = line;
+    }
+  };
+
+  return {
+    render: () => {
+      draw();
+    },
+    tick: () => {
+      completed = Math.min(total, completed + 1);
+      draw();
+      if (isTTY && completed === total) {
+        process.stdout.write('\n');
+      }
+    },
+  };
 }
 
 function looksLikeGzipKey(key) {
@@ -608,6 +657,9 @@ async function run() {
   if (args.ci === undefined && typeof DEFAULTS.CI === 'boolean') {
     args.ci = DEFAULTS.CI;
   }
+  if (!args.dir && DEFAULTS.DIR) {
+    args.dir = DEFAULTS.DIR;
+  }
 
   if ((!args.s3Url && !args.bucket) || !args.outDir) {
     console.error('Error: S3 URL/bucket and output directory are required.');
@@ -662,6 +714,8 @@ async function run() {
     return;
   }
   console.log(`Found ${filtered.length} object(s) after filtering. Starting download with concurrency=${args.concurrency} ...`);
+  const progressBar = createDownloadProgressBar(filtered.length);
+  progressBar.render();
 
   // Simple concurrency control
   let inFlight = 0;
@@ -692,6 +746,7 @@ async function run() {
           })
           .finally(() => {
             inFlight -= 1;
+            progressBar.tick();
             if (idx >= filtered.length && inFlight === 0) resolve();
             else maybeStartNext();
           });
