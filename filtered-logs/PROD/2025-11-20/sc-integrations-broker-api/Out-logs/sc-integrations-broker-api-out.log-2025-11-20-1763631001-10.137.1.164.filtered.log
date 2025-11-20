@@ -1,0 +1,5014 @@
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "buyAmount": 0,
+      "sellAmount": 0,
+      "stocksCount": 0
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "sufficientFunds": true,
+        "requiredFunds": 0,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        }
+      }
+    },
+    "user": {
+      "id": "69045647228214990ee7483a"
+    },
+    "brokerFunctionLogId": "539ea28a-b702-489c-92eb-0fb1b082e840",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "e15baa00-c5ec-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:42:43.234Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "brokeruserId": "S2338362",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      },
+      "response": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      }
+    },
+    "userId": "69045647228214990ee7483a",
+    "brokerFunctionLogId": "e8fbdfd2-b8f1-4a6e-9677-31f6be73c6d5",
+    "brokerApi": {
+      "functionName": "Portfolio.liveHoldings",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "e1531e80-c5ec-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:42:43.196Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 40,
+  "err": {
+    "message": "Failed to fetch holdings",
+    "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in fetching live holdings",
+    "details": {
+      "options": {
+        "accessToken": "REDACTED",
+        "brokeruserId": "S2338362",
+        "apiKey": "REDACTED",
+        "apiSecret": "REDACTED"
+      }
+    },
+    "userId": "69045647228214990ee7483a",
+    "brokerFunctionLogId": "e8fbdfd2-b8f1-4a6e-9677-31f6be73c6d5",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "e1531e80-c5ec-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:42:43.195Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 50,
+  "err": {
+    "message": "Request failed with status code 401",
+    "name": "AxiosError",
+    "stack": "AxiosError: Request failed with status code 401\n    at settle (/deployments/sc-integrations-broker-api/node_modules/axios/lib/core/settle.js:17:12)\n    at IncomingMessage.handleStreamEnd (/deployments/sc-integrations-broker-api/node_modules/axios/lib/adapters/http.js:382:11)\n    at IncomingMessage.emit (node:events:525:35)\n    at endReadableNT (node:internal/streams/readable:1359:12)\n    at processTicksAndRejections (node:internal/process/task_queues:82:21)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in request - Request failed with status code 401",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/holdings?api_key=1bc928ff1ce54970b0a2f2ae4740dc77&client_id=S2338362",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S2338362",
+      "accessToken": "REDACTED",
+      "response": {
+        "error": "invalid credentials"
+      }
+    },
+    "userId": "69045647228214990ee7483a",
+    "brokerFunctionLogId": "e8fbdfd2-b8f1-4a6e-9677-31f6be73c6d5",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "e1531e80-c5ec-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:42:43.194Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "brokeruserId": "S2338362",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      },
+      "response": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      }
+    },
+    "userId": "69045647228214990ee7483a",
+    "brokerFunctionLogId": "3b34a440-1dee-41b6-9591-d217f05d72b5",
+    "brokerApi": {
+      "functionName": "Portfolio.liveHoldings",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "e147acd0-c5ec-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:42:43.119Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 40,
+  "err": {
+    "message": "Failed to fetch holdings",
+    "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in fetching live holdings",
+    "details": {
+      "options": {
+        "accessToken": "REDACTED",
+        "brokeruserId": "S2338362",
+        "apiKey": "REDACTED",
+        "apiSecret": "REDACTED"
+      }
+    },
+    "userId": "69045647228214990ee7483a",
+    "brokerFunctionLogId": "3b34a440-1dee-41b6-9591-d217f05d72b5",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "e147acd0-c5ec-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:42:43.118Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 50,
+  "err": {
+    "message": "Request failed with status code 401",
+    "name": "AxiosError",
+    "stack": "AxiosError: Request failed with status code 401\n    at settle (/deployments/sc-integrations-broker-api/node_modules/axios/lib/core/settle.js:17:12)\n    at IncomingMessage.handleStreamEnd (/deployments/sc-integrations-broker-api/node_modules/axios/lib/adapters/http.js:382:11)\n    at IncomingMessage.emit (node:events:525:35)\n    at endReadableNT (node:internal/streams/readable:1359:12)\n    at processTicksAndRejections (node:internal/process/task_queues:82:21)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in request - Request failed with status code 401",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/holdings?api_key=1bc928ff1ce54970b0a2f2ae4740dc77&client_id=S2338362",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S2338362",
+      "accessToken": "REDACTED",
+      "response": {
+        "error": "invalid credentials"
+      }
+    },
+    "userId": "69045647228214990ee7483a",
+    "brokerFunctionLogId": "3b34a440-1dee-41b6-9591-d217f05d72b5",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "e147acd0-c5ec-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:42:43.117Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "buyAmount": 0,
+      "sellAmount": 0,
+      "stocksCount": 0
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "sufficientFunds": true,
+        "requiredFunds": 0,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        }
+      }
+    },
+    "user": {
+      "id": "69045647228214990ee7483a"
+    },
+    "brokerFunctionLogId": "aae6d5f5-7226-4dc1-bf11-09f0fda7040a",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "e146c270-c5ec-11f0-ac09-abcbc5645669",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:42:43.097Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "buyAmount": 0,
+      "sellAmount": 0,
+      "stocksCount": 0
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "sufficientFunds": true,
+        "requiredFunds": 0,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        }
+      }
+    },
+    "user": {
+      "id": "69045647228214990ee7483a"
+    },
+    "brokerFunctionLogId": "74ca3fed-527f-414e-a2b6-cb44ef97b62b",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "e124bb80-c5ec-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:42:42.874Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "brokeruserId": "S2338362",
+      "clientDetails": {
+        "channel": "web",
+        "channelIp": "2405:201:5004:3c3:ac14:7eb:f6d9:1819",
+        "appInstallId": "e18d5850-8500-5448-b192-c39fa80551ae",
+        "appVersion": "1.0.0",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
+      },
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      },
+      "response": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      }
+    },
+    "userId": "69045647228214990ee7483a",
+    "brokerFunctionLogId": "357a3ed5-20dc-4a20-b506-201d2204f1b5",
+    "brokerApi": {
+      "functionName": "Portfolio.liveHoldings",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "e11c08f0-c5ec-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:42:42.835Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 40,
+  "err": {
+    "message": "Failed to fetch holdings",
+    "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in fetching live holdings",
+    "details": {
+      "options": {
+        "accessToken": "REDACTED",
+        "brokeruserId": "S2338362",
+        "clientDetails": {
+          "channel": "web",
+          "channelIp": "2405:201:5004:3c3:ac14:7eb:f6d9:1819",
+          "appInstallId": "e18d5850-8500-5448-b192-c39fa80551ae",
+          "appVersion": "1.0.0",
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
+        },
+        "apiKey": "REDACTED",
+        "apiSecret": "REDACTED"
+      }
+    },
+    "userId": "69045647228214990ee7483a",
+    "brokerFunctionLogId": "357a3ed5-20dc-4a20-b506-201d2204f1b5",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "e11c08f0-c5ec-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:42:42.834Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 50,
+  "err": {
+    "message": "Request failed with status code 401",
+    "name": "AxiosError",
+    "stack": "AxiosError: Request failed with status code 401\n    at settle (/deployments/sc-integrations-broker-api/node_modules/axios/lib/core/settle.js:17:12)\n    at IncomingMessage.handleStreamEnd (/deployments/sc-integrations-broker-api/node_modules/axios/lib/adapters/http.js:382:11)\n    at IncomingMessage.emit (node:events:525:35)\n    at endReadableNT (node:internal/streams/readable:1359:12)\n    at processTicksAndRejections (node:internal/process/task_queues:82:21)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in request - Request failed with status code 401",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/holdings?api_key=1bc928ff1ce54970b0a2f2ae4740dc77&client_id=S2338362",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S2338362",
+      "accessToken": "REDACTED",
+      "response": {
+        "error": "invalid credentials"
+      }
+    },
+    "userId": "69045647228214990ee7483a",
+    "brokerFunctionLogId": "357a3ed5-20dc-4a20-b506-201d2204f1b5",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "e11c08f0-c5ec-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:42:42.833Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "segment": "equity",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": false,
+        "reason": "failure",
+        "statusCode": 501
+      }
+    },
+    "userId": "69045647228214990ee7483a",
+    "brokerFunctionLogId": "8bacecb1-dcbc-438a-938e-8f04901b42ab",
+    "brokerApi": {
+      "functionName": "Funds.get",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "e0dcdd10-c5ec-11f0-ac09-abcbc5645669",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:42:42.403Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "brokeruserId": "S10272",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      },
+      "response": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "fbdcc16b-9a28-4383-8ec3-b45d1d1e5b29",
+    "brokerApi": {
+      "functionName": "Portfolio.liveHoldings",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "6a219410-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:25:04.229Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 40,
+  "err": {
+    "message": "Failed to fetch holdings",
+    "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in fetching live holdings",
+    "details": {
+      "options": {
+        "accessToken": "REDACTED",
+        "brokeruserId": "S10272",
+        "apiKey": "REDACTED",
+        "apiSecret": "REDACTED"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "fbdcc16b-9a28-4383-8ec3-b45d1d1e5b29",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "6a219410-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:25:04.228Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 50,
+  "err": {
+    "message": "Request failed with status code 401",
+    "name": "AxiosError",
+    "stack": "AxiosError: Request failed with status code 401\n    at settle (/deployments/sc-integrations-broker-api/node_modules/axios/lib/core/settle.js:17:12)\n    at IncomingMessage.handleStreamEnd (/deployments/sc-integrations-broker-api/node_modules/axios/lib/adapters/http.js:382:11)\n    at IncomingMessage.emit (node:events:525:35)\n    at endReadableNT (node:internal/streams/readable:1359:12)\n    at processTicksAndRejections (node:internal/process/task_queues:82:21)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in request - Request failed with status code 401",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/holdings?api_key=1bc928ff1ce54970b0a2f2ae4740dc77&client_id=S10272",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "error": "invalid credentials"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "fbdcc16b-9a28-4383-8ec3-b45d1d1e5b29",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "6a219410-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:25:04.226Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "buyAmount": 0,
+      "sellAmount": 0,
+      "stocksCount": 0
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "sufficientFunds": true,
+        "requiredFunds": 0,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        }
+      }
+    },
+    "user": {
+      "id": "69044940460b987a8555aba0"
+    },
+    "brokerFunctionLogId": "0fc5f7d8-04b2-4484-ba56-826334debb72",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "6a1f2310-c5ea-11f0-ac09-abcbc5645669",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:25:04.197Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "buyAmount": 0,
+      "sellAmount": 0,
+      "stocksCount": 0
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "sufficientFunds": true,
+        "requiredFunds": 0,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        }
+      }
+    },
+    "user": {
+      "id": "69044940460b987a8555aba0"
+    },
+    "brokerFunctionLogId": "2806a151-6bad-4e15-bc1e-1bde4356575b",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "6a1278e0-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:25:04.115Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "brokeruserId": "S10272",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      },
+      "response": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "3138e7b9-9e34-4f89-9b72-0ae99bd51225",
+    "brokerApi": {
+      "functionName": "Portfolio.liveHoldings",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "6a088dd0-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:25:04.074Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 40,
+  "err": {
+    "message": "Failed to fetch holdings",
+    "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in fetching live holdings",
+    "details": {
+      "options": {
+        "accessToken": "REDACTED",
+        "brokeruserId": "S10272",
+        "apiKey": "REDACTED",
+        "apiSecret": "REDACTED"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "3138e7b9-9e34-4f89-9b72-0ae99bd51225",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "6a088dd0-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:25:04.073Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 50,
+  "err": {
+    "message": "Request failed with status code 401",
+    "name": "AxiosError",
+    "stack": "AxiosError: Request failed with status code 401\n    at settle (/deployments/sc-integrations-broker-api/node_modules/axios/lib/core/settle.js:17:12)\n    at IncomingMessage.handleStreamEnd (/deployments/sc-integrations-broker-api/node_modules/axios/lib/adapters/http.js:382:11)\n    at IncomingMessage.emit (node:events:525:35)\n    at endReadableNT (node:internal/streams/readable:1359:12)\n    at processTicksAndRejections (node:internal/process/task_queues:82:21)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in request - Request failed with status code 401",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/holdings?api_key=1bc928ff1ce54970b0a2f2ae4740dc77&client_id=S10272",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "error": "invalid credentials"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "3138e7b9-9e34-4f89-9b72-0ae99bd51225",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "6a088dd0-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:25:04.072Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "buyAmount": 0,
+      "sellAmount": 0,
+      "stocksCount": 0
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "sufficientFunds": true,
+        "requiredFunds": 0,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        }
+      }
+    },
+    "user": {
+      "id": "69044940460b987a8555aba0"
+    },
+    "brokerFunctionLogId": "1c2ef423-03bc-4c08-aeb1-ea452503f197",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "69ff8d20-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:25:03.991Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "apiKey": "REDACTED",
+      "accessToken": "REDACTED",
+      "apiSecret": "REDACTED",
+      "ipAddress": "REDACTED"
+    },
+    "response": {
+      "error": {
+        "code": false,
+        "reason": "failure",
+        "statusCode": 500,
+        "message": "Session check failed"
+      },
+      "response": {
+        "code": false,
+        "reason": "failure",
+        "statusCode": 500,
+        "message": "Session check failed"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "23101d1b-438f-4bf9-bee3-384190d8ed62",
+    "brokerApi": {
+      "functionName": "User.checkSession",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "69e99420-c5ea-11f0-ac09-abcbc5645669",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:25:03.871Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 40,
+  "err": {},
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in check session",
+    "details": {
+      "options": {
+        "apiKey": "REDACTED",
+        "accessToken": "REDACTED",
+        "apiSecret": "REDACTED",
+        "ipAddress": "REDACTED"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "23101d1b-438f-4bf9-bee3-384190d8ed62",
+    "functionName": "User.checkSession",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "69e99420-c5ea-11f0-ac09-abcbc5645669",
+  "msg": "",
+  "time": "2025-11-20T08:25:03.870Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 50,
+  "err": {
+    "message": "Request failed with status code 401",
+    "name": "AxiosError",
+    "stack": "AxiosError: Request failed with status code 401\n    at settle (/deployments/sc-integrations-broker-api/node_modules/axios/lib/core/settle.js:17:12)\n    at IncomingMessage.handleStreamEnd (/deployments/sc-integrations-broker-api/node_modules/axios/lib/adapters/http.js:382:11)\n    at IncomingMessage.emit (node:events:525:35)\n    at endReadableNT (node:internal/streams/readable:1359:12)\n    at processTicksAndRejections (node:internal/process/task_queues:82:21)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in request - Request failed with status code 401",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/user/trading_info?client_id=S10272&api_key=1bc928ff1ce54970b0a2f2ae4740dc77",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "error": "invalid credentials"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "23101d1b-438f-4bf9-bee3-384190d8ed62",
+    "functionName": "User.checkSession",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "69e99420-c5ea-11f0-ac09-abcbc5645669",
+  "msg": "",
+  "time": "2025-11-20T08:25:03.868Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "segment": "equity",
+      "accessToken": "REDACTED",
+      "ipAddress": "REDACTED",
+      "clientDetails": {
+        "channel": "web",
+        "channelIp": "2409:40c0:101f:93f6:5816:8748:2dc:c872",
+        "appInstallId": "9941e26b-b33b-596d-af3c-03e53b504cc7",
+        "appVersion": "1.0.0",
+        "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
+      },
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "message": "Session check successful"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "b298794a-cd4d-4a1e-bf8e-62200925d656",
+    "brokerApi": {
+      "functionName": "User.checkSession",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "4e3c5000-c5ea-11f0-ac09-abcbc5645669",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:24:17.463Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Successful request",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/user/trading_info?client_id=S10272&api_key=1bc928ff1ce54970b0a2f2ae4740dc77",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "data": {
+            "client_id": "REDACTED",
+            "ddpi": true,
+            "exchanges_subscribed": [
+              ""
+            ],
+            "name": "REDACTED",
+            "poa_enabled": false,
+            "products_enabled": [
+              "CNC",
+              "MIS",
+              "NRML",
+              "MTF"
+            ],
+            "status": "active"
+          },
+          "message": "",
+          "status": "success"
+        }
+      },
+      "responseString": {
+        "data": {
+          "client_id": "REDACTED",
+          "ddpi": true,
+          "exchanges_subscribed": [
+            ""
+          ],
+          "name": "REDACTED",
+          "poa_enabled": false,
+          "products_enabled": [
+            "CNC",
+            "MIS",
+            "NRML",
+            "MTF"
+          ],
+          "status": "active"
+        },
+        "message": "",
+        "status": "success"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "b298794a-cd4d-4a1e-bf8e-62200925d656",
+    "functionName": "User.checkSession",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "4e3c5000-c5ea-11f0-ac09-abcbc5645669",
+  "msg": "",
+  "time": "2025-11-20T08:24:17.461Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "buyAmount": 0,
+      "sellAmount": 0,
+      "stocksCount": 0
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "sufficientFunds": true,
+        "requiredFunds": 0,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        }
+      }
+    },
+    "user": {
+      "id": "69044940460b987a8555aba0"
+    },
+    "brokerFunctionLogId": "e777414e-677e-44f8-90ca-0bc025f15da7",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "4a2a9850-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:24:10.583Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 40,
+  "err": {
+    "message": "Failed to fetch holdings",
+    "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in fetching live holdings",
+    "details": {
+      "options": {
+        "accessToken": "REDACTED",
+        "brokeruserId": "S10272",
+        "gateway": true,
+        "apiKey": "REDACTED",
+        "apiSecret": "REDACTED"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "46602507-4821-4011-9578-f82ad1d63f20",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "4a077ff0-c5ea-11f0-ac09-abcbc5645669",
+  "msg": "",
+  "time": "2025-11-20T08:24:10.379Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "brokeruserId": "S10272",
+      "gateway": true,
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      },
+      "response": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "46602507-4821-4011-9578-f82ad1d63f20",
+    "brokerApi": {
+      "functionName": "Portfolio.liveHoldings",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "4a077ff0-c5ea-11f0-ac09-abcbc5645669",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:24:10.379Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 50,
+  "err": {
+    "message": "Request failed with status code 401",
+    "name": "AxiosError",
+    "stack": "AxiosError: Request failed with status code 401\n    at settle (/deployments/sc-integrations-broker-api/node_modules/axios/lib/core/settle.js:17:12)\n    at IncomingMessage.handleStreamEnd (/deployments/sc-integrations-broker-api/node_modules/axios/lib/adapters/http.js:382:11)\n    at IncomingMessage.emit (node:events:525:35)\n    at endReadableNT (node:internal/streams/readable:1359:12)\n    at processTicksAndRejections (node:internal/process/task_queues:82:21)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in request - Request failed with status code 401",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/holdings?api_key=1bc928ff1ce54970b0a2f2ae4740dc77&client_id=S10272",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "error": "invalid credentials"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "46602507-4821-4011-9578-f82ad1d63f20",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "4a077ff0-c5ea-11f0-ac09-abcbc5645669",
+  "msg": "",
+  "time": "2025-11-20T08:24:10.377Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 40,
+  "err": {},
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in check session",
+    "details": {
+      "options": {
+        "apiKey": "REDACTED",
+        "accessToken": "REDACTED",
+        "apiSecret": "REDACTED",
+        "ipAddress": "REDACTED"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "8b0eb13e-1d8c-4d63-a61c-232b9bddc767",
+    "functionName": "User.checkSession",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "4a038850-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:24:10.345Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "apiKey": "REDACTED",
+      "accessToken": "REDACTED",
+      "apiSecret": "REDACTED",
+      "ipAddress": "REDACTED"
+    },
+    "response": {
+      "error": {
+        "code": false,
+        "reason": "failure",
+        "statusCode": 500,
+        "message": "Session check failed"
+      },
+      "response": {
+        "code": false,
+        "reason": "failure",
+        "statusCode": 500,
+        "message": "Session check failed"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "8b0eb13e-1d8c-4d63-a61c-232b9bddc767",
+    "brokerApi": {
+      "functionName": "User.checkSession",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "4a038850-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:24:10.345Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 50,
+  "err": {
+    "message": "Request failed with status code 401",
+    "name": "AxiosError",
+    "stack": "AxiosError: Request failed with status code 401\n    at settle (/deployments/sc-integrations-broker-api/node_modules/axios/lib/core/settle.js:17:12)\n    at IncomingMessage.handleStreamEnd (/deployments/sc-integrations-broker-api/node_modules/axios/lib/adapters/http.js:382:11)\n    at IncomingMessage.emit (node:events:525:35)\n    at endReadableNT (node:internal/streams/readable:1359:12)\n    at processTicksAndRejections (node:internal/process/task_queues:82:21)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in request - Request failed with status code 401",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/user/trading_info?client_id=S10272&api_key=1bc928ff1ce54970b0a2f2ae4740dc77",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "error": "invalid credentials"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "8b0eb13e-1d8c-4d63-a61c-232b9bddc767",
+    "functionName": "User.checkSession",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "4a038850-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:24:10.344Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "apiKey": "REDACTED",
+      "accessToken": "REDACTED",
+      "apiSecret": "REDACTED",
+      "ipAddress": "REDACTED"
+    },
+    "response": {
+      "error": {
+        "code": false,
+        "reason": "failure",
+        "statusCode": 500,
+        "message": "Session check failed"
+      },
+      "response": {
+        "code": false,
+        "reason": "failure",
+        "statusCode": 500,
+        "message": "Session check failed"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "884608f1-4408-400b-9428-01f61bc2eeb2",
+    "brokerApi": {
+      "functionName": "User.checkSession",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "49fcaa80-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:24:10.303Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 50,
+  "err": {
+    "message": "Request failed with status code 401",
+    "name": "AxiosError",
+    "stack": "AxiosError: Request failed with status code 401\n    at settle (/deployments/sc-integrations-broker-api/node_modules/axios/lib/core/settle.js:17:12)\n    at IncomingMessage.handleStreamEnd (/deployments/sc-integrations-broker-api/node_modules/axios/lib/adapters/http.js:382:11)\n    at IncomingMessage.emit (node:events:525:35)\n    at endReadableNT (node:internal/streams/readable:1359:12)\n    at processTicksAndRejections (node:internal/process/task_queues:82:21)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in request - Request failed with status code 401",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/user/trading_info?client_id=S10272&api_key=1bc928ff1ce54970b0a2f2ae4740dc77",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "error": "invalid credentials"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "884608f1-4408-400b-9428-01f61bc2eeb2",
+    "functionName": "User.checkSession",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "49fcaa80-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:24:10.302Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 40,
+  "err": {},
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in check session",
+    "details": {
+      "options": {
+        "apiKey": "REDACTED",
+        "accessToken": "REDACTED",
+        "apiSecret": "REDACTED",
+        "ipAddress": "REDACTED"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "884608f1-4408-400b-9428-01f61bc2eeb2",
+    "functionName": "User.checkSession",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "49fcaa80-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:24:10.302Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "buyAmount": 0,
+      "sellAmount": 0,
+      "stocksCount": 0
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "sufficientFunds": true,
+        "requiredFunds": 0,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        }
+      }
+    },
+    "user": {
+      "id": "69044940460b987a8555aba0"
+    },
+    "brokerFunctionLogId": "59072b2a-704a-4ef4-9fd1-14c44eda05f2",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "3b62b870-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:23:45.785Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "buyAmount": 0,
+      "sellAmount": 0,
+      "stocksCount": 0
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "sufficientFunds": true,
+        "requiredFunds": 0,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        }
+      }
+    },
+    "user": {
+      "id": "69044940460b987a8555aba0"
+    },
+    "brokerFunctionLogId": "4f66ce23-1823-4454-a4c7-d8eec91a3950",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "3b3f2ae0-c5ea-11f0-ac09-abcbc5645669",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:23:45.553Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "buyAmount": 0,
+      "sellAmount": 0,
+      "stocksCount": 0
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "sufficientFunds": true,
+        "requiredFunds": 0,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        }
+      }
+    },
+    "user": {
+      "id": "69044940460b987a8555aba0"
+    },
+    "brokerFunctionLogId": "deaa3e57-f213-4f11-8fe6-eaa7a301db94",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "3aebdac0-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:23:45.007Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "buyAmount": 0,
+      "sellAmount": 0,
+      "stocksCount": 0
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "sufficientFunds": true,
+        "requiredFunds": 0,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        }
+      }
+    },
+    "user": {
+      "id": "69044940460b987a8555aba0"
+    },
+    "brokerFunctionLogId": "4a97b4a3-a69f-4537-84b2-e219f7ec1a6e",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "3aeac950-c5ea-11f0-ac09-abcbc5645669",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:23:44.999Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Successful request",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/user/trading_info?client_id=S10272&api_key=1bc928ff1ce54970b0a2f2ae4740dc77",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "data": {
+            "client_id": "REDACTED",
+            "ddpi": true,
+            "exchanges_subscribed": [
+              ""
+            ],
+            "name": "REDACTED",
+            "poa_enabled": false,
+            "products_enabled": [
+              "CNC",
+              "MIS",
+              "NRML",
+              "MTF"
+            ],
+            "status": "active"
+          },
+          "message": "",
+          "status": "success"
+        }
+      },
+      "responseString": {
+        "data": {
+          "client_id": "REDACTED",
+          "ddpi": true,
+          "exchanges_subscribed": [
+            ""
+          ],
+          "name": "REDACTED",
+          "poa_enabled": false,
+          "products_enabled": [
+            "CNC",
+            "MIS",
+            "NRML",
+            "MTF"
+          ],
+          "status": "active"
+        },
+        "message": "",
+        "status": "success"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "847e26cc-abd3-4873-a096-cada4f4b4f04",
+    "functionName": "User.checkSession",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "3add82e0-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:23:44.966Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "segment": "equity",
+      "accessToken": "REDACTED",
+      "ipAddress": "REDACTED",
+      "clientDetails": {
+        "channel": "web",
+        "channelIp": "2409:40c0:101f:93f6:5816:8748:2dc:c872",
+        "appInstallId": "9941e26b-b33b-596d-af3c-03e53b504cc7",
+        "appVersion": "1.0.0",
+        "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
+      },
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "message": "Session check successful"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "847e26cc-abd3-4873-a096-cada4f4b4f04",
+    "brokerApi": {
+      "functionName": "User.checkSession",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "3add82e0-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:23:44.966Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "segment": "equity",
+      "accessToken": "REDACTED",
+      "ipAddress": "REDACTED",
+      "clientDetails": {
+        "channel": "web",
+        "channelIp": "2409:40c0:101f:93f6:5816:8748:2dc:c872",
+        "appInstallId": "9941e26b-b33b-596d-af3c-03e53b504cc7",
+        "appVersion": "1.0.0",
+        "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
+      },
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "message": "Session check successful"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "fccc3f32-b3c7-4f43-af96-20edda75491e",
+    "brokerApi": {
+      "functionName": "User.checkSession",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "3ade6d40-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:23:44.963Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Successful request",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/user/trading_info?client_id=S10272&api_key=1bc928ff1ce54970b0a2f2ae4740dc77",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "data": {
+            "client_id": "REDACTED",
+            "ddpi": true,
+            "exchanges_subscribed": [
+              ""
+            ],
+            "name": "REDACTED",
+            "poa_enabled": false,
+            "products_enabled": [
+              "CNC",
+              "MIS",
+              "NRML",
+              "MTF"
+            ],
+            "status": "active"
+          },
+          "message": "",
+          "status": "success"
+        }
+      },
+      "responseString": {
+        "data": {
+          "client_id": "REDACTED",
+          "ddpi": true,
+          "exchanges_subscribed": [
+            ""
+          ],
+          "name": "REDACTED",
+          "poa_enabled": false,
+          "products_enabled": [
+            "CNC",
+            "MIS",
+            "NRML",
+            "MTF"
+          ],
+          "status": "active"
+        },
+        "message": "",
+        "status": "success"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "fccc3f32-b3c7-4f43-af96-20edda75491e",
+    "functionName": "User.checkSession",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "3ade6d40-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:23:44.962Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "buyAmount": 0,
+      "sellAmount": 0,
+      "stocksCount": 0
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "sufficientFunds": true,
+        "requiredFunds": 0,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        }
+      }
+    },
+    "user": {
+      "id": "69044940460b987a8555aba0"
+    },
+    "brokerFunctionLogId": "a3efd83f-f653-4926-a89a-d4c212037b58",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "305d37c0-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:23:27.294Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "buyAmount": 0,
+      "sellAmount": 0,
+      "stocksCount": 0
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "sufficientFunds": true,
+        "requiredFunds": 0,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        }
+      }
+    },
+    "user": {
+      "id": "69044940460b987a8555aba0"
+    },
+    "brokerFunctionLogId": "734de881-8c54-449b-86c3-d45ad533ebcc",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "28763520-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:23:14.036Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "buyAmount": 0,
+      "sellAmount": 0,
+      "stocksCount": 0
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "sufficientFunds": true,
+        "requiredFunds": 0,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        }
+      }
+    },
+    "user": {
+      "id": "69044940460b987a8555aba0"
+    },
+    "brokerFunctionLogId": "bff3e07a-3d67-4ac7-8aaf-5436444bda18",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "284699a0-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:23:13.724Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "segment": "equity",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": false,
+        "reason": "failure",
+        "statusCode": 501
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "83d2b02e-2508-4fa2-82f1-60b8651647e1",
+    "brokerApi": {
+      "functionName": "Funds.get",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "2844ebf0-c5ea-11f0-ac09-abcbc5645669",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:23:13.713Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "segment": "equity",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": false,
+        "reason": "failure",
+        "statusCode": 501
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "b360207e-bce0-4a86-890f-7f795cd44bae",
+    "brokerApi": {
+      "functionName": "Funds.get",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "27fc7140-c5ea-11f0-ac09-abcbc5645669",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:23:13.238Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "apiKey": "REDACTED",
+      "accessToken": "REDACTED",
+      "apiSecret": "REDACTED",
+      "ipAddress": "REDACTED"
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "message": "Session check successful"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "4e1cc98d-c4b6-4fad-824c-c999ed93d0ca",
+    "brokerApi": {
+      "functionName": "User.checkSession",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "27f2d450-c5ea-11f0-ac09-abcbc5645669",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:23:13.222Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Successful request",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/user/trading_info?client_id=S10272&api_key=1bc928ff1ce54970b0a2f2ae4740dc77",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "data": {
+            "client_id": "REDACTED",
+            "ddpi": true,
+            "exchanges_subscribed": [
+              ""
+            ],
+            "name": "REDACTED",
+            "poa_enabled": false,
+            "products_enabled": [
+              "CNC",
+              "MIS",
+              "NRML",
+              "MTF"
+            ],
+            "status": "active"
+          },
+          "message": "",
+          "status": "success"
+        }
+      },
+      "responseString": {
+        "data": {
+          "client_id": "REDACTED",
+          "ddpi": true,
+          "exchanges_subscribed": [
+            ""
+          ],
+          "name": "REDACTED",
+          "poa_enabled": false,
+          "products_enabled": [
+            "CNC",
+            "MIS",
+            "NRML",
+            "MTF"
+          ],
+          "status": "active"
+        },
+        "message": "",
+        "status": "success"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "4e1cc98d-c4b6-4fad-824c-c999ed93d0ca",
+    "functionName": "User.checkSession",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "27f2d450-c5ea-11f0-ac09-abcbc5645669",
+  "msg": "",
+  "time": "2025-11-20T08:23:13.221Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "brokeruserId": "S10272",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      },
+      "response": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "0e49483f-7ecf-428b-af63-299e0dfde3c6",
+    "brokerApi": {
+      "functionName": "Portfolio.liveHoldings",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "1592b280-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:22:42.364Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 40,
+  "err": {
+    "message": "Failed to fetch holdings",
+    "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in fetching live holdings",
+    "details": {
+      "options": {
+        "accessToken": "REDACTED",
+        "brokeruserId": "S10272",
+        "apiKey": "REDACTED",
+        "apiSecret": "REDACTED"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "0e49483f-7ecf-428b-af63-299e0dfde3c6",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "1592b280-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:22:42.363Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 50,
+  "err": {
+    "message": "Request failed with status code 401",
+    "name": "AxiosError",
+    "stack": "AxiosError: Request failed with status code 401\n    at settle (/deployments/sc-integrations-broker-api/node_modules/axios/lib/core/settle.js:17:12)\n    at IncomingMessage.handleStreamEnd (/deployments/sc-integrations-broker-api/node_modules/axios/lib/adapters/http.js:382:11)\n    at IncomingMessage.emit (node:events:525:35)\n    at endReadableNT (node:internal/streams/readable:1359:12)\n    at processTicksAndRejections (node:internal/process/task_queues:82:21)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in request - Request failed with status code 401",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/holdings?api_key=1bc928ff1ce54970b0a2f2ae4740dc77&client_id=S10272",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "error": "invalid credentials"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "0e49483f-7ecf-428b-af63-299e0dfde3c6",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "1592b280-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:22:42.362Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "buyAmount": 0,
+      "sellAmount": 0,
+      "stocksCount": 0
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "sufficientFunds": true,
+        "requiredFunds": 0,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        }
+      }
+    },
+    "user": {
+      "id": "69044940460b987a8555aba0"
+    },
+    "brokerFunctionLogId": "bcfc3107-4118-40a4-8345-73752dc3e65e",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "157cb980-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:22:42.202Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "brokeruserId": "S10272",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      },
+      "response": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "cb6641f2-6190-4441-8e57-36f766270ceb",
+    "brokerApi": {
+      "functionName": "Portfolio.liveHoldings",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "15684720-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:22:42.090Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 50,
+  "err": {
+    "message": "Request failed with status code 401",
+    "name": "AxiosError",
+    "stack": "AxiosError: Request failed with status code 401\n    at settle (/deployments/sc-integrations-broker-api/node_modules/axios/lib/core/settle.js:17:12)\n    at IncomingMessage.handleStreamEnd (/deployments/sc-integrations-broker-api/node_modules/axios/lib/adapters/http.js:382:11)\n    at IncomingMessage.emit (node:events:525:35)\n    at endReadableNT (node:internal/streams/readable:1359:12)\n    at processTicksAndRejections (node:internal/process/task_queues:82:21)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in request - Request failed with status code 401",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/holdings?api_key=1bc928ff1ce54970b0a2f2ae4740dc77&client_id=S10272",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "error": "invalid credentials"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "cb6641f2-6190-4441-8e57-36f766270ceb",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "15684720-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:22:42.089Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 40,
+  "err": {
+    "message": "Failed to fetch holdings",
+    "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in fetching live holdings",
+    "details": {
+      "options": {
+        "accessToken": "REDACTED",
+        "brokeruserId": "S10272",
+        "apiKey": "REDACTED",
+        "apiSecret": "REDACTED"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "cb6641f2-6190-4441-8e57-36f766270ceb",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "15684720-c5ea-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:22:42.089Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "brokeruserId": "S10272",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      },
+      "response": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "648172c1-b56f-4469-959d-4ec99538dae3",
+    "brokerApi": {
+      "functionName": "Portfolio.liveHoldings",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "d8a74ca0-c5e9-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:21:00.164Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 50,
+  "err": {
+    "message": "Request failed with status code 401",
+    "name": "AxiosError",
+    "stack": "AxiosError: Request failed with status code 401\n    at settle (/deployments/sc-integrations-broker-api/node_modules/axios/lib/core/settle.js:17:12)\n    at IncomingMessage.handleStreamEnd (/deployments/sc-integrations-broker-api/node_modules/axios/lib/adapters/http.js:382:11)\n    at IncomingMessage.emit (node:events:525:35)\n    at endReadableNT (node:internal/streams/readable:1359:12)\n    at processTicksAndRejections (node:internal/process/task_queues:82:21)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in request - Request failed with status code 401",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/holdings?api_key=1bc928ff1ce54970b0a2f2ae4740dc77&client_id=S10272",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "error": "invalid credentials"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "648172c1-b56f-4469-959d-4ec99538dae3",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "d8a74ca0-c5e9-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:21:00.163Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 40,
+  "err": {
+    "message": "Failed to fetch holdings",
+    "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in fetching live holdings",
+    "details": {
+      "options": {
+        "accessToken": "REDACTED",
+        "brokeruserId": "S10272",
+        "apiKey": "REDACTED",
+        "apiSecret": "REDACTED"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "648172c1-b56f-4469-959d-4ec99538dae3",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "d8a74ca0-c5e9-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:21:00.163Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 40,
+  "err": {
+    "message": "Failed to fetch holdings",
+    "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in fetching live holdings",
+    "details": {
+      "options": {
+        "accessToken": "REDACTED",
+        "brokeruserId": "S10272",
+        "apiKey": "REDACTED",
+        "apiSecret": "REDACTED"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "1ffcef62-f4c9-4815-b1ff-21aaa3a99f37",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "d89d1370-c5e9-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:21:00.097Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "brokeruserId": "S10272",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      },
+      "response": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "1ffcef62-f4c9-4815-b1ff-21aaa3a99f37",
+    "brokerApi": {
+      "functionName": "Portfolio.liveHoldings",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "d89d1370-c5e9-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:21:00.097Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 50,
+  "err": {
+    "message": "Request failed with status code 401",
+    "name": "AxiosError",
+    "stack": "AxiosError: Request failed with status code 401\n    at settle (/deployments/sc-integrations-broker-api/node_modules/axios/lib/core/settle.js:17:12)\n    at IncomingMessage.handleStreamEnd (/deployments/sc-integrations-broker-api/node_modules/axios/lib/adapters/http.js:382:11)\n    at IncomingMessage.emit (node:events:525:35)\n    at endReadableNT (node:internal/streams/readable:1359:12)\n    at processTicksAndRejections (node:internal/process/task_queues:82:21)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in request - Request failed with status code 401",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/holdings?api_key=1bc928ff1ce54970b0a2f2ae4740dc77&client_id=S10272",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "error": "invalid credentials"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "1ffcef62-f4c9-4815-b1ff-21aaa3a99f37",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "d89d1370-c5e9-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:21:00.096Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "buyAmount": 0,
+      "sellAmount": 0,
+      "stocksCount": 0
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "sufficientFunds": true,
+        "requiredFunds": 0,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        }
+      }
+    },
+    "user": {
+      "id": "69044940460b987a8555aba0"
+    },
+    "brokerFunctionLogId": "b4c9349d-c565-452e-bdc4-1073b78f96c8",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "d88ebb90-c5e9-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:20:59.979Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "segment": "equity",
+      "accessToken": "REDACTED",
+      "buyAmount": 399.18,
+      "sellAmount": 0,
+      "stocksCount": 2,
+      "variety": "regular",
+      "ipAddress": "REDACTED",
+      "noErrorType": false,
+      "rebalanceBasketFlag": false,
+      "label": "INVESTMORE",
+      "clientDetails": {
+        "channel": "web",
+        "channelIp": "2409:40c0:101f:93f6:5816:8748:2dc:c872",
+        "appInstallId": "9941e26b-b33b-596d-af3c-03e53b504cc7",
+        "appVersion": "1.0.0",
+        "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
+      },
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "requiredFunds": 399.18
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "availableFunds": 2970.89,
+        "sufficientFunds": true,
+        "requiredFunds": 399.18,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        },
+        "buyValue": 399.18,
+        "sellValue": 0,
+        "bufferAdded": false
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "68be4551-b0ee-4ecb-88d0-1f6ddb6a499e",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "cd92b0c0-c5e9-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:20:41.630Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Successful request",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/funds/view?api_key=1bc928ff1ce54970b0a2f2ae4740dc77&client_id=S10272&type=all",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "data": {
+            "client_id": "REDACTED",
+            "headers": [
+              "Description",
+              "all"
+            ],
+            "realized_mtm": "-69.86",
+            "unrealized_mtm": "0.00",
+            "values": [
+              [
+                "Available Margin",
+                "2970.89"
+              ],
+              [
+                "Opening Balance",
+                "3085.29"
+              ],
+              [
+                "Margin Used",
+                "44.54"
+              ],
+              [
+                "Pay In",
+                "0.00"
+              ],
+              [
+                "Pay Out",
+                "0.00"
+              ],
+              [
+                "Withdrawable Funds",
+                "3015.43"
+              ],
+              [
+                "Pledge Benefit",
+                "0.00"
+              ],
+              [
+                "Equity Credit Sell",
+                "0.00"
+              ],
+              [
+                "Option Credit For Sell",
+                "0.00"
+              ],
+              [
+                "Realized MTM",
+                "-69.86"
+              ],
+              [
+                "Unrealized MTM",
+                "0.00"
+              ],
+              [
+                "MTM",
+                "-69.86"
+              ],
+              [
+                "MTF Available Limit",
+                "8438.10"
+              ],
+              [
+                "MTF Opening Balance",
+                "12893.30"
+              ],
+              [
+                "MTF Withdrawal Limit",
+                "8438.10"
+              ],
+              [
+                "MTF Margin Blocked",
+                "2919.69"
+              ],
+              [
+                "CTD MTF Margin Blocked",
+                "0.00"
+              ],
+              [
+                "MTF Used Pledge Benefit",
+                "0.00"
+              ],
+              [
+                "MTF PNL",
+                "-11.30"
+              ],
+              [
+                "MTF Equity Credit For Sell",
+                "0.00"
+              ],
+              [
+                "MTF Day Margin",
+                "1524.21"
+              ],
+              [
+                "MTF Payout",
+                "0.00"
+              ],
+              [
+                "Day txn charges",
+                "1525.54"
+              ]
+            ]
+          },
+          "message": "",
+          "status": "success"
+        }
+      },
+      "responseString": {
+        "data": {
+          "client_id": "REDACTED",
+          "headers": [
+            "Description",
+            "all"
+          ],
+          "realized_mtm": "-69.86",
+          "unrealized_mtm": "0.00",
+          "values": [
+            [
+              "Available Margin",
+              "2970.89"
+            ],
+            [
+              "Opening Balance",
+              "3085.29"
+            ],
+            [
+              "Margin Used",
+              "44.54"
+            ],
+            [
+              "Pay In",
+              "0.00"
+            ],
+            [
+              "Pay Out",
+              "0.00"
+            ],
+            [
+              "Withdrawable Funds",
+              "3015.43"
+            ],
+            [
+              "Pledge Benefit",
+              "0.00"
+            ],
+            [
+              "Equity Credit Sell",
+              "0.00"
+            ],
+            [
+              "Option Credit For Sell",
+              "0.00"
+            ],
+            [
+              "Realized MTM",
+              "-69.86"
+            ],
+            [
+              "Unrealized MTM",
+              "0.00"
+            ],
+            [
+              "MTM",
+              "-69.86"
+            ],
+            [
+              "MTF Available Limit",
+              "8438.10"
+            ],
+            [
+              "MTF Opening Balance",
+              "12893.30"
+            ],
+            [
+              "MTF Withdrawal Limit",
+              "8438.10"
+            ],
+            [
+              "MTF Margin Blocked",
+              "2919.69"
+            ],
+            [
+              "CTD MTF Margin Blocked",
+              "0.00"
+            ],
+            [
+              "MTF Used Pledge Benefit",
+              "0.00"
+            ],
+            [
+              "MTF PNL",
+              "-11.30"
+            ],
+            [
+              "MTF Equity Credit For Sell",
+              "0.00"
+            ],
+            [
+              "MTF Day Margin",
+              "1524.21"
+            ],
+            [
+              "MTF Payout",
+              "0.00"
+            ],
+            [
+              "Day txn charges",
+              "1525.54"
+            ]
+          ]
+        },
+        "message": "",
+        "status": "success"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "68be4551-b0ee-4ecb-88d0-1f6ddb6a499e",
+    "functionName": "Funds.check",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "cd92b0c0-c5e9-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:20:41.629Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SERVER_LOG",
+  "level": 30,
+  "context": {
+    "userId": "69044940460b987a8555aba0",
+    "options": {
+      "brokerName": "hdfcsky",
+      "userId": "69044940460b987a8555aba0",
+      "brokerId": "S10272",
+      "accessToken": "REDACTED",
+      "orders": [
+        {
+          "sid": "GBES",
+          "quantity": 1,
+          "transactionType": "BUY",
+          "orderType": "MARKET",
+          "exchange": "NSE"
+        },
+        {
+          "sid": "NBES",
+          "quantity": 1,
+          "transactionType": "BUY",
+          "orderType": "MARKET",
+          "exchange": "NSE"
+        }
+      ],
+      "clientDetails": {
+        "channel": "web",
+        "channelIp": "2409:40c0:101f:93f6:5816:8748:2dc:c872",
+        "appInstallId": "9941e26b-b33b-596d-af3c-03e53b504cc7",
+        "appVersion": "1.0.0",
+        "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
+      },
+      "ipAddress": "REDACTED"
+    },
+    "charges": {
+      "type": "CHARGES",
+      "data": {
+        "brokerage": 4,
+        "stt": 0.39714000000000005,
+        "transactionCharge": 0.01370133,
+        "sebiTurnoverCharge": 0.00039714000000000004,
+        "stampDuty": 0.059571,
+        "gst": 0.7225377246,
+        "dpCharges": 0,
+        "clearingCharges": 0
+      }
+    }
+  },
+  "reqId": "cd372340-c5e9-11f0-88c6-891ba198fdab",
+  "msg": "calculated charges",
+  "time": "2025-11-20T08:20:40.957Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SERVER_LOG",
+  "level": 30,
+  "context": {
+    "userId": "69044940460b987a8555aba0",
+    "brokerId": "S10272",
+    "brokerName": "hdfcsky",
+    "requestBody": {
+      "brokerName": "hdfcsky",
+      "options": {
+        "userId": "69044940460b987a8555aba0",
+        "brokerId": "S10272",
+        "accessToken": "REDACTED",
+        "orders": [
+          {
+            "sid": "GBES",
+            "quantity": 1,
+            "transactionType": "BUY",
+            "orderType": "MARKET"
+          },
+          {
+            "sid": "NBES",
+            "quantity": 1,
+            "transactionType": "BUY",
+            "orderType": "MARKET"
+          }
+        ],
+        "clientDetails": {
+          "channel": "web",
+          "channelIp": "2409:40c0:101f:93f6:5816:8748:2dc:c872",
+          "appInstallId": "9941e26b-b33b-596d-af3c-03e53b504cc7",
+          "appVersion": "1.0.0",
+          "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
+        }
+      }
+    }
+  },
+  "reqId": "cd372340-c5e9-11f0-88c6-891ba198fdab",
+  "msg": "get brokerage request received",
+  "time": "2025-11-20T08:20:40.951Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "segment": "equity",
+      "accessToken": "REDACTED",
+      "ipAddress": "REDACTED",
+      "clientDetails": {
+        "channel": "web",
+        "channelIp": "2409:40c0:101f:93f6:5816:8748:2dc:c872",
+        "appInstallId": "9941e26b-b33b-596d-af3c-03e53b504cc7",
+        "appVersion": "1.0.0",
+        "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
+      },
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "message": "Session check successful"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "69525943-b890-4adc-bc09-c6cb97e4a853",
+    "brokerApi": {
+      "functionName": "User.checkSession",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "c6ece0b0-c5e9-11f0-ac09-abcbc5645669",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:20:30.461Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Successful request",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/user/trading_info?client_id=S10272&api_key=1bc928ff1ce54970b0a2f2ae4740dc77",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "data": {
+            "client_id": "REDACTED",
+            "ddpi": true,
+            "exchanges_subscribed": [
+              ""
+            ],
+            "name": "REDACTED",
+            "poa_enabled": false,
+            "products_enabled": [
+              "CNC",
+              "MIS",
+              "NRML",
+              "MTF"
+            ],
+            "status": "active"
+          },
+          "message": "",
+          "status": "success"
+        }
+      },
+      "responseString": {
+        "data": {
+          "client_id": "REDACTED",
+          "ddpi": true,
+          "exchanges_subscribed": [
+            ""
+          ],
+          "name": "REDACTED",
+          "poa_enabled": false,
+          "products_enabled": [
+            "CNC",
+            "MIS",
+            "NRML",
+            "MTF"
+          ],
+          "status": "active"
+        },
+        "message": "",
+        "status": "success"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "69525943-b890-4adc-bc09-c6cb97e4a853",
+    "functionName": "User.checkSession",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "c6ece0b0-c5e9-11f0-ac09-abcbc5645669",
+  "msg": "",
+  "time": "2025-11-20T08:20:30.460Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "brokeruserId": "S10272",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      },
+      "response": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "aeb16edb-67ba-40c5-8f85-a5ce11509995",
+    "brokerApi": {
+      "functionName": "Portfolio.liveHoldings",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "b3b7bba0-c5e9-11f0-ac09-abcbc5645669",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:19:58.200Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 40,
+  "err": {
+    "message": "Failed to fetch holdings",
+    "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in fetching live holdings",
+    "details": {
+      "options": {
+        "accessToken": "REDACTED",
+        "brokeruserId": "S10272",
+        "apiKey": "REDACTED",
+        "apiSecret": "REDACTED"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "aeb16edb-67ba-40c5-8f85-a5ce11509995",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "b3b7bba0-c5e9-11f0-ac09-abcbc5645669",
+  "msg": "",
+  "time": "2025-11-20T08:19:58.197Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 50,
+  "err": {
+    "message": "Request failed with status code 401",
+    "name": "AxiosError",
+    "stack": "AxiosError: Request failed with status code 401\n    at settle (/deployments/sc-integrations-broker-api/node_modules/axios/lib/core/settle.js:17:12)\n    at IncomingMessage.handleStreamEnd (/deployments/sc-integrations-broker-api/node_modules/axios/lib/adapters/http.js:382:11)\n    at IncomingMessage.emit (node:events:525:35)\n    at endReadableNT (node:internal/streams/readable:1359:12)\n    at processTicksAndRejections (node:internal/process/task_queues:82:21)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in request - Request failed with status code 401",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/holdings?api_key=1bc928ff1ce54970b0a2f2ae4740dc77&client_id=S10272",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "error": "invalid credentials"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "aeb16edb-67ba-40c5-8f85-a5ce11509995",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "b3b7bba0-c5e9-11f0-ac09-abcbc5645669",
+  "msg": "",
+  "time": "2025-11-20T08:19:58.196Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "buyAmount": 0,
+      "sellAmount": 0,
+      "stocksCount": 0
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "sufficientFunds": true,
+        "requiredFunds": 0,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        }
+      }
+    },
+    "user": {
+      "id": "69044940460b987a8555aba0"
+    },
+    "brokerFunctionLogId": "9b07a8c3-aa68-410a-a5a4-cc917ad06b3c",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "b3a1e9b0-c5e9-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:19:58.029Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "buyAmount": 0,
+      "sellAmount": 0,
+      "stocksCount": 0
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "sufficientFunds": true,
+        "requiredFunds": 0,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        }
+      }
+    },
+    "user": {
+      "id": "69044940460b987a8555aba0"
+    },
+    "brokerFunctionLogId": "a7353715-358a-4bda-a07c-cc443f136736",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "b39d7ce0-c5e9-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:19:57.999Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "segment": "equity",
+      "accessToken": "REDACTED",
+      "ipAddress": "REDACTED",
+      "clientDetails": {
+        "channel": "web",
+        "channelIp": "2409:40c0:101f:93f6:5816:8748:2dc:c872",
+        "appInstallId": "9941e26b-b33b-596d-af3c-03e53b504cc7",
+        "appVersion": "1.0.0",
+        "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
+      },
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "message": "Session check successful"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "a393748d-0681-4fe3-90d2-566de698d16c",
+    "brokerApi": {
+      "functionName": "User.checkSession",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "b1593230-c5e9-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:19:54.241Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Successful request",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/user/trading_info?client_id=S10272&api_key=1bc928ff1ce54970b0a2f2ae4740dc77",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "data": {
+            "client_id": "REDACTED",
+            "ddpi": true,
+            "exchanges_subscribed": [
+              ""
+            ],
+            "name": "REDACTED",
+            "poa_enabled": false,
+            "products_enabled": [
+              "CNC",
+              "MIS",
+              "NRML",
+              "MTF"
+            ],
+            "status": "active"
+          },
+          "message": "",
+          "status": "success"
+        }
+      },
+      "responseString": {
+        "data": {
+          "client_id": "REDACTED",
+          "ddpi": true,
+          "exchanges_subscribed": [
+            ""
+          ],
+          "name": "REDACTED",
+          "poa_enabled": false,
+          "products_enabled": [
+            "CNC",
+            "MIS",
+            "NRML",
+            "MTF"
+          ],
+          "status": "active"
+        },
+        "message": "",
+        "status": "success"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "a393748d-0681-4fe3-90d2-566de698d16c",
+    "functionName": "User.checkSession",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "b1593230-c5e9-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:19:54.240Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "segment": "equity",
+      "accessToken": "REDACTED",
+      "ipAddress": "REDACTED",
+      "clientDetails": {
+        "channel": "web",
+        "channelIp": "2409:40c0:101f:93f6:5816:8748:2dc:c872",
+        "appInstallId": "9941e26b-b33b-596d-af3c-03e53b504cc7",
+        "appVersion": "1.0.0",
+        "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
+      },
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "message": "Session check successful"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "8be12962-6b4d-4630-bd1c-7a3f8522acce",
+    "brokerApi": {
+      "functionName": "User.checkSession",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "ad14d1c0-c5e9-11f0-ac09-abcbc5645669",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:19:47.079Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Successful request",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/user/trading_info?client_id=S10272&api_key=1bc928ff1ce54970b0a2f2ae4740dc77",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "data": {
+            "client_id": "REDACTED",
+            "ddpi": true,
+            "exchanges_subscribed": [
+              ""
+            ],
+            "name": "REDACTED",
+            "poa_enabled": false,
+            "products_enabled": [
+              "CNC",
+              "MIS",
+              "NRML",
+              "MTF"
+            ],
+            "status": "active"
+          },
+          "message": "",
+          "status": "success"
+        }
+      },
+      "responseString": {
+        "data": {
+          "client_id": "REDACTED",
+          "ddpi": true,
+          "exchanges_subscribed": [
+            ""
+          ],
+          "name": "REDACTED",
+          "poa_enabled": false,
+          "products_enabled": [
+            "CNC",
+            "MIS",
+            "NRML",
+            "MTF"
+          ],
+          "status": "active"
+        },
+        "message": "",
+        "status": "success"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "8be12962-6b4d-4630-bd1c-7a3f8522acce",
+    "functionName": "User.checkSession",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "ad14d1c0-c5e9-11f0-ac09-abcbc5645669",
+  "msg": "",
+  "time": "2025-11-20T08:19:47.078Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "segment": "equity",
+      "accessToken": "REDACTED",
+      "buyAmount": 3954.11,
+      "sellAmount": 0,
+      "stocksCount": 4,
+      "variety": "regular",
+      "ipAddress": "REDACTED",
+      "noErrorType": false,
+      "rebalanceBasketFlag": false,
+      "label": "BUY",
+      "clientDetails": {
+        "channel": "web",
+        "channelIp": "2409:40c0:101f:93f6:5816:8748:2dc:c872",
+        "appInstallId": "9941e26b-b33b-596d-af3c-03e53b504cc7",
+        "appVersion": "1.0.0",
+        "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
+      },
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "requiredFunds": 3954.11
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "availableFunds": 3015.43,
+        "sufficientFunds": false,
+        "requiredFunds": 3954.11,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        },
+        "buyValue": 3954.11,
+        "sellValue": 0,
+        "bufferAdded": false
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "c1336dbe-34e9-40cf-b739-9e7d4866e772",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "8fa4a7f0-c5e9-11f0-ac09-abcbc5645669",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:18:57.748Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Successful request",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/funds/view?api_key=1bc928ff1ce54970b0a2f2ae4740dc77&client_id=S10272&type=all",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "data": {
+            "client_id": "REDACTED",
+            "headers": [
+              "Description",
+              "all"
+            ],
+            "realized_mtm": "-69.86",
+            "unrealized_mtm": "0.00",
+            "values": [
+              [
+                "Available Margin",
+                "3015.43"
+              ],
+              [
+                "Opening Balance",
+                "3085.29"
+              ],
+              [
+                "Margin Used",
+                "0.00"
+              ],
+              [
+                "Pay In",
+                "0.00"
+              ],
+              [
+                "Pay Out",
+                "0.00"
+              ],
+              [
+                "Withdrawable Funds",
+                "3015.43"
+              ],
+              [
+                "Pledge Benefit",
+                "0.00"
+              ],
+              [
+                "Equity Credit Sell",
+                "0.00"
+              ],
+              [
+                "Option Credit For Sell",
+                "0.00"
+              ],
+              [
+                "Realized MTM",
+                "-69.86"
+              ],
+              [
+                "Unrealized MTM",
+                "0.00"
+              ],
+              [
+                "MTM",
+                "-69.86"
+              ],
+              [
+                "MTF Available Limit",
+                "8438.30"
+              ],
+              [
+                "MTF Opening Balance",
+                "12893.30"
+              ],
+              [
+                "MTF Withdrawal Limit",
+                "8438.30"
+              ],
+              [
+                "MTF Margin Blocked",
+                "2919.69"
+              ],
+              [
+                "CTD MTF Margin Blocked",
+                "0.00"
+              ],
+              [
+                "MTF Used Pledge Benefit",
+                "0.00"
+              ],
+              [
+                "MTF PNL",
+                "-11.10"
+              ],
+              [
+                "MTF Equity Credit For Sell",
+                "0.00"
+              ],
+              [
+                "MTF Day Margin",
+                "1524.21"
+              ],
+              [
+                "MTF Payout",
+                "0.00"
+              ],
+              [
+                "Day txn charges",
+                "1524.21"
+              ]
+            ]
+          },
+          "message": "",
+          "status": "success"
+        }
+      },
+      "responseString": {
+        "data": {
+          "client_id": "REDACTED",
+          "headers": [
+            "Description",
+            "all"
+          ],
+          "realized_mtm": "-69.86",
+          "unrealized_mtm": "0.00",
+          "values": [
+            [
+              "Available Margin",
+              "3015.43"
+            ],
+            [
+              "Opening Balance",
+              "3085.29"
+            ],
+            [
+              "Margin Used",
+              "0.00"
+            ],
+            [
+              "Pay In",
+              "0.00"
+            ],
+            [
+              "Pay Out",
+              "0.00"
+            ],
+            [
+              "Withdrawable Funds",
+              "3015.43"
+            ],
+            [
+              "Pledge Benefit",
+              "0.00"
+            ],
+            [
+              "Equity Credit Sell",
+              "0.00"
+            ],
+            [
+              "Option Credit For Sell",
+              "0.00"
+            ],
+            [
+              "Realized MTM",
+              "-69.86"
+            ],
+            [
+              "Unrealized MTM",
+              "0.00"
+            ],
+            [
+              "MTM",
+              "-69.86"
+            ],
+            [
+              "MTF Available Limit",
+              "8438.30"
+            ],
+            [
+              "MTF Opening Balance",
+              "12893.30"
+            ],
+            [
+              "MTF Withdrawal Limit",
+              "8438.30"
+            ],
+            [
+              "MTF Margin Blocked",
+              "2919.69"
+            ],
+            [
+              "CTD MTF Margin Blocked",
+              "0.00"
+            ],
+            [
+              "MTF Used Pledge Benefit",
+              "0.00"
+            ],
+            [
+              "MTF PNL",
+              "-11.10"
+            ],
+            [
+              "MTF Equity Credit For Sell",
+              "0.00"
+            ],
+            [
+              "MTF Day Margin",
+              "1524.21"
+            ],
+            [
+              "MTF Payout",
+              "0.00"
+            ],
+            [
+              "Day txn charges",
+              "1524.21"
+            ]
+          ]
+        },
+        "message": "",
+        "status": "success"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "c1336dbe-34e9-40cf-b739-9e7d4866e772",
+    "functionName": "Funds.check",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "8fa4a7f0-c5e9-11f0-ac09-abcbc5645669",
+  "msg": "",
+  "time": "2025-11-20T08:18:57.743Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "segment": "equity",
+      "accessToken": "REDACTED",
+      "ipAddress": "REDACTED",
+      "clientDetails": {
+        "channel": "web",
+        "channelIp": "2409:40c0:101f:93f6:5816:8748:2dc:c872",
+        "appInstallId": "9941e26b-b33b-596d-af3c-03e53b504cc7",
+        "appVersion": "1.0.0",
+        "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
+      },
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "message": "Session check successful"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "bf65d063-9cc6-4273-9be5-9110f7875fd5",
+    "brokerApi": {
+      "functionName": "User.checkSession",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "8f96ec50-c5e9-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:18:57.638Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Successful request",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/user/trading_info?client_id=S10272&api_key=1bc928ff1ce54970b0a2f2ae4740dc77",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "data": {
+            "client_id": "REDACTED",
+            "ddpi": true,
+            "exchanges_subscribed": [
+              ""
+            ],
+            "name": "REDACTED",
+            "poa_enabled": false,
+            "products_enabled": [
+              "CNC",
+              "MIS",
+              "NRML",
+              "MTF"
+            ],
+            "status": "active"
+          },
+          "message": "",
+          "status": "success"
+        }
+      },
+      "responseString": {
+        "data": {
+          "client_id": "REDACTED",
+          "ddpi": true,
+          "exchanges_subscribed": [
+            ""
+          ],
+          "name": "REDACTED",
+          "poa_enabled": false,
+          "products_enabled": [
+            "CNC",
+            "MIS",
+            "NRML",
+            "MTF"
+          ],
+          "status": "active"
+        },
+        "message": "",
+        "status": "success"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "bf65d063-9cc6-4273-9be5-9110f7875fd5",
+    "functionName": "User.checkSession",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "8f96ec50-c5e9-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:18:57.636Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "brokeruserId": "S10272",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      },
+      "response": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "dc9b262d-34ee-49da-a915-d3ec8b9e4fef",
+    "brokerApi": {
+      "functionName": "Portfolio.liveHoldings",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "2f497340-c5e9-11f0-ac09-abcbc5645669",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:16:16.009Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 50,
+  "err": {
+    "message": "Request failed with status code 401",
+    "name": "AxiosError",
+    "stack": "AxiosError: Request failed with status code 401\n    at settle (/deployments/sc-integrations-broker-api/node_modules/axios/lib/core/settle.js:17:12)\n    at IncomingMessage.handleStreamEnd (/deployments/sc-integrations-broker-api/node_modules/axios/lib/adapters/http.js:382:11)\n    at IncomingMessage.emit (node:events:525:35)\n    at endReadableNT (node:internal/streams/readable:1359:12)\n    at processTicksAndRejections (node:internal/process/task_queues:82:21)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in request - Request failed with status code 401",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/holdings?api_key=1bc928ff1ce54970b0a2f2ae4740dc77&client_id=S10272",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "error": "invalid credentials"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "dc9b262d-34ee-49da-a915-d3ec8b9e4fef",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "2f497340-c5e9-11f0-ac09-abcbc5645669",
+  "msg": "",
+  "time": "2025-11-20T08:16:16.008Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 40,
+  "err": {
+    "message": "Failed to fetch holdings",
+    "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in fetching live holdings",
+    "details": {
+      "options": {
+        "accessToken": "REDACTED",
+        "brokeruserId": "S10272",
+        "apiKey": "REDACTED",
+        "apiSecret": "REDACTED"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "dc9b262d-34ee-49da-a915-d3ec8b9e4fef",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "2f497340-c5e9-11f0-ac09-abcbc5645669",
+  "msg": "",
+  "time": "2025-11-20T08:16:16.008Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "brokeruserId": "S10272",
+      "clientDetails": {
+        "channel": "web",
+        "channelIp": "2409:40c0:101f:93f6:5816:8748:2dc:c872",
+        "appInstallId": "9941e26b-b33b-596d-af3c-03e53b504cc7",
+        "appVersion": "1.0.0",
+        "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
+      },
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      },
+      "response": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "44ba992e-4aa4-4923-880c-66a1467c7a7a",
+    "brokerApi": {
+      "functionName": "Portfolio.liveHoldings",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "2f31f3a0-c5e9-11f0-ac09-abcbc5645669",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:16:15.859Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 40,
+  "err": {
+    "message": "Failed to fetch holdings",
+    "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in fetching live holdings",
+    "details": {
+      "options": {
+        "accessToken": "REDACTED",
+        "brokeruserId": "S10272",
+        "clientDetails": {
+          "channel": "web",
+          "channelIp": "2409:40c0:101f:93f6:5816:8748:2dc:c872",
+          "appInstallId": "9941e26b-b33b-596d-af3c-03e53b504cc7",
+          "appVersion": "1.0.0",
+          "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
+        },
+        "apiKey": "REDACTED",
+        "apiSecret": "REDACTED"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "44ba992e-4aa4-4923-880c-66a1467c7a7a",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "2f31f3a0-c5e9-11f0-ac09-abcbc5645669",
+  "msg": "",
+  "time": "2025-11-20T08:16:15.858Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 50,
+  "err": {
+    "message": "Request failed with status code 401",
+    "name": "AxiosError",
+    "stack": "AxiosError: Request failed with status code 401\n    at settle (/deployments/sc-integrations-broker-api/node_modules/axios/lib/core/settle.js:17:12)\n    at IncomingMessage.handleStreamEnd (/deployments/sc-integrations-broker-api/node_modules/axios/lib/adapters/http.js:382:11)\n    at IncomingMessage.emit (node:events:525:35)\n    at endReadableNT (node:internal/streams/readable:1359:12)\n    at processTicksAndRejections (node:internal/process/task_queues:82:21)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in request - Request failed with status code 401",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/holdings?api_key=1bc928ff1ce54970b0a2f2ae4740dc77&client_id=S10272",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "error": "invalid credentials"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "44ba992e-4aa4-4923-880c-66a1467c7a7a",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "2f31f3a0-c5e9-11f0-ac09-abcbc5645669",
+  "msg": "",
+  "time": "2025-11-20T08:16:15.857Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "brokeruserId": "S10272",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      },
+      "response": {
+        "code": false,
+        "reason": "error",
+        "message": "Failed to fetch holdings",
+        "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)",
+        "statusCode": 401,
+        "body": {
+          "error": "invalid credentials"
+        }
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "53752652-9475-43bc-82ea-317122502979",
+    "brokerApi": {
+      "functionName": "Portfolio.liveHoldings",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "2f310940-c5e9-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:16:15.848Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 40,
+  "err": {
+    "message": "Failed to fetch holdings",
+    "stack": "Error: HTTP 401: {\"error\":\"invalid credentials\"}\n    at requestBroker (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/request.js:82:32)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at holdings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:38:52)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/services/portfolio.js:133:72)\n    at Object.liveHoldings (/deployments/sc-integrations-broker-api/node_modules/@smallcase/sc-integrations-broker-lib/src/brokers/hdfcsky/api.js:125:60)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in fetching live holdings",
+    "details": {
+      "options": {
+        "accessToken": "REDACTED",
+        "brokeruserId": "S10272",
+        "apiKey": "REDACTED",
+        "apiSecret": "REDACTED"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "53752652-9475-43bc-82ea-317122502979",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "2f310940-c5e9-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:16:15.847Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 50,
+  "err": {
+    "message": "Request failed with status code 401",
+    "name": "AxiosError",
+    "stack": "AxiosError: Request failed with status code 401\n    at settle (/deployments/sc-integrations-broker-api/node_modules/axios/lib/core/settle.js:17:12)\n    at IncomingMessage.handleStreamEnd (/deployments/sc-integrations-broker-api/node_modules/axios/lib/adapters/http.js:382:11)\n    at IncomingMessage.emit (node:events:525:35)\n    at endReadableNT (node:internal/streams/readable:1359:12)\n    at processTicksAndRejections (node:internal/process/task_queues:82:21)"
+  },
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Error in request - Request failed with status code 401",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/holdings?api_key=1bc928ff1ce54970b0a2f2ae4740dc77&client_id=S10272",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S10272",
+      "accessToken": "REDACTED",
+      "response": {
+        "error": "invalid credentials"
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "53752652-9475-43bc-82ea-317122502979",
+    "functionName": "Portfolio.liveHoldings",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "2f310940-c5e9-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T08:16:15.846Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "buyAmount": 0,
+      "sellAmount": 0,
+      "stocksCount": 0
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "sufficientFunds": true,
+        "requiredFunds": 0,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        }
+      }
+    },
+    "user": {
+      "id": "69044940460b987a8555aba0"
+    },
+    "brokerFunctionLogId": "35f18349-959e-4a83-87f2-320bce167562",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "2f309410-c5e9-11f0-ac09-abcbc5645669",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:16:15.827Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "buyAmount": 0,
+      "sellAmount": 0,
+      "stocksCount": 0
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "sufficientFunds": true,
+        "requiredFunds": 0,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        }
+      }
+    },
+    "user": {
+      "id": "69044940460b987a8555aba0"
+    },
+    "brokerFunctionLogId": "fd06fbe5-d16e-4086-a4a4-7aad61833228",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "2f1c21b0-c5e9-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:16:15.694Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "segment": "equity",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED"
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": false,
+        "reason": "failure",
+        "statusCode": 501
+      }
+    },
+    "userId": "69044940460b987a8555aba0",
+    "brokerFunctionLogId": "966770e3-ae85-49d7-9c2d-075280373690",
+    "brokerApi": {
+      "functionName": "Funds.get",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "2ee33760-c5e9-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T08:16:15.320Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "buyAmount": 0,
+      "sellAmount": 0,
+      "stocksCount": 0
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "sufficientFunds": true,
+        "requiredFunds": 0,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        }
+      }
+    },
+    "user": {
+      "id": "69045647228214990ee7483a"
+    },
+    "brokerFunctionLogId": "97803875-ae17-4a44-9e44-79332499d6a8",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "e3562930-c5e6-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T07:59:49.574Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "accessToken": "REDACTED",
+      "apiKey": "REDACTED",
+      "apiSecret": "REDACTED",
+      "buyAmount": 0,
+      "sellAmount": 0,
+      "stocksCount": 0
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "sufficientFunds": true,
+        "requiredFunds": 0,
+        "allowedSellValues": {
+          "T0": 0,
+          "T1": 1
+        }
+      }
+    },
+    "user": {
+      "id": "69045647228214990ee7483a"
+    },
+    "brokerFunctionLogId": "791b0660-75c8-4468-a39e-045b4e3f14f6",
+    "brokerApi": {
+      "functionName": "Funds.check",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "4b2f9e80-c5e5-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T07:48:24.810Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "apiKey": "REDACTED",
+      "accessToken": "REDACTED",
+      "apiSecret": "REDACTED",
+      "ipAddress": "REDACTED"
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "message": "Session check successful"
+      }
+    },
+    "userId": "69045647228214990ee7483a",
+    "brokerFunctionLogId": "2f0963f7-1e59-4644-9b88-a1bef290d9ca",
+    "brokerApi": {
+      "functionName": "User.checkSession",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "4b25b370-c5e5-11f0-ac09-abcbc5645669",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T07:48:24.789Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2462,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Successful request",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/user/trading_info?client_id=S2338362&api_key=1bc928ff1ce54970b0a2f2ae4740dc77",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S2338362",
+      "accessToken": "REDACTED",
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "data": {
+            "client_id": "REDACTED",
+            "ddpi": false,
+            "exchanges_subscribed": [
+              ""
+            ],
+            "name": "REDACTED",
+            "poa_enabled": false,
+            "products_enabled": [
+              "CNC",
+              "MIS",
+              "NRML",
+              "MTF"
+            ],
+            "status": "active"
+          },
+          "message": "",
+          "status": "success"
+        }
+      },
+      "responseString": {
+        "data": {
+          "client_id": "REDACTED",
+          "ddpi": false,
+          "exchanges_subscribed": [
+            ""
+          ],
+          "name": "REDACTED",
+          "poa_enabled": false,
+          "products_enabled": [
+            "CNC",
+            "MIS",
+            "NRML",
+            "MTF"
+          ],
+          "status": "active"
+        },
+        "message": "",
+        "status": "success"
+      }
+    },
+    "userId": "69045647228214990ee7483a",
+    "brokerFunctionLogId": "2f0963f7-1e59-4644-9b88-a1bef290d9ca",
+    "functionName": "User.checkSession",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "4b25b370-c5e5-11f0-ac09-abcbc5645669",
+  "msg": "",
+  "time": "2025-11-20T07:48:24.788Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "options": {
+      "apiKey": "REDACTED",
+      "accessToken": "REDACTED",
+      "apiSecret": "REDACTED",
+      "ipAddress": "REDACTED"
+    },
+    "response": {
+      "error": null,
+      "response": {
+        "code": true,
+        "reason": "success",
+        "message": "Session check successful"
+      }
+    },
+    "userId": "69045647228214990ee7483a",
+    "brokerFunctionLogId": "d1c6bff2-19c8-4745-beb4-694bf51408a1",
+    "brokerApi": {
+      "functionName": "User.checkSession",
+      "brokerName": "hdfcsky"
+    }
+  },
+  "reqId": "47eb0cc0-c5e3-11f0-88c6-891ba198fdab",
+  "msg": "broker lib function response recieved",
+  "time": "2025-11-20T07:34:00.388Z",
+  "v": 0
+},
+{
+  "name": "sc.service.sc-integrations-brokers-api",
+  "version": "3.8.9",
+  "hostname": "ip-10-137-1-164",
+  "pid": 2454,
+  "type": "SC_BROKER",
+  "level": 30,
+  "context": {
+    "broker": "hdfcsky",
+    "msg": "Successful request",
+    "details": {
+      "request": {
+        "url": "https://developer.hdfcsky.com/oapi/v1/user/trading_info?client_id=S2338362&api_key=1bc928ff1ce54970b0a2f2ae4740dc77",
+        "method": "GET",
+        "headers": {
+          "Authorization": "REDACTED",
+          "Content-Type": "application/json"
+        },
+        "timeout": 20000
+      },
+      "userId": "S2338362",
+      "accessToken": "REDACTED",
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "data": {
+            "client_id": "REDACTED",
+            "ddpi": false,
+            "exchanges_subscribed": [
+              ""
+            ],
+            "name": "REDACTED",
+            "poa_enabled": false,
+            "products_enabled": [
+              "CNC",
+              "MIS",
+              "NRML",
+              "MTF"
+            ],
+            "status": "active"
+          },
+          "message": "",
+          "status": "success"
+        }
+      },
+      "responseString": {
+        "data": {
+          "client_id": "REDACTED",
+          "ddpi": false,
+          "exchanges_subscribed": [
+            ""
+          ],
+          "name": "REDACTED",
+          "poa_enabled": false,
+          "products_enabled": [
+            "CNC",
+            "MIS",
+            "NRML",
+            "MTF"
+          ],
+          "status": "active"
+        },
+        "message": "",
+        "status": "success"
+      }
+    },
+    "userId": "69045647228214990ee7483a",
+    "brokerFunctionLogId": "d1c6bff2-19c8-4745-beb4-694bf51408a1",
+    "functionName": "User.checkSession",
+    "brokerName": "hdfcsky"
+  },
+  "reqId": "47eb0cc0-c5e3-11f0-88c6-891ba198fdab",
+  "msg": "",
+  "time": "2025-11-20T07:34:00.387Z",
+  "v": 0
+},
