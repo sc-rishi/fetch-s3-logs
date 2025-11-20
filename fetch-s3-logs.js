@@ -47,7 +47,7 @@ process.env.AWS_DEFAULT_REGION = 'ap-south-1';
 // Script-level defaults (can be edited directly instead of passing CLI flags)
 const DEFAULTS = {
   S3_URL: 's3://sc-pm2logs-new/PROD/2025-11-20/sc-integrations-broker-api/',
-  OUT_DIR: './filtered-logs',
+  OUT_DIR: './logs',
   IST: true,
   FROM: '2025-11-20T13:00:00',
   TO: '2025-11-20T15:00:00',
