@@ -43,20 +43,20 @@ process.env.AWS_PROFILE = 'smallcase';
 process.env.AWS_SDK_LOAD_CONFIG = '1';
 process.env.AWS_REGION = 'ap-south-1';
 process.env.AWS_DEFAULT_REGION = 'ap-south-1';
-const DATE = '2025-11-20';
+const DATE = '2025-12-11';
 // Script-level defaults (can be edited directly instead of passing CLI flags)
 const DEFAULTS = {
   S3_URL: `s3://sc-pm2logs-new/PROD/${DATE}/sc-integrations-broker-api/`,
   OUT_DIR: './logs',
   IST: true,
-  FROM: `${DATE}T15:30:00`,
-  TO: `${DATE}T16:00:00`,
-  FILTER_TEXT: undefined, // e.g. 'hdfcsky'
-  FILTER_FIELD: 'broker=hdfcsky, brokerName=hdfcsky', // string, comma-separated, or array of 'k=v'
+  FROM: `${DATE}T01:00:00`,
+  TO: `${DATE}T23:50:00`,
+  FILTER_TEXT: 'upstox, no segments', // e.g. 'hdfcsky'
+  // FILTER_FIELD: 'broker=hdfcsky, brokerName=hdfcsky', // string, comma-separated, or array of 'k=v'
   CONCURRENCY: 4,
   SORT: 'nf', // 'nf' | 'of' (new first | old first)
   CI: false, // case-insensitive matching for text and field,
-  DIR: 'Out-logs',
+  // DIR: 'Out-logs',
 };
 
 function printHelpAndExit(code = 1) {
@@ -78,7 +78,7 @@ function printHelpAndExit(code = 1) {
       '  --from <ISO|epochMs>       Filter lines whose JSON "time" >= this',
       '  --to <ISO|epochMs>         Filter lines whose JSON "time" <= this',
       '  --ist                      Interpret --from/--to as IST (UTC+05:30)',
-      '  --filter-text <substr>     Create an additional filtered copy with lines containing this substring',
+      '  --filter-text <a,b>        Substring filter (comma-separated values must ALL match)',
       '  --filter-field <k=v>       Create an additional filtered copy with lines where JSON field k===v',
       '                              Supports expressions like: key1=val1 and key2=val2 or key3=val3',
       '                              (repeatable; repeats OR with expression result)',
@@ -121,6 +121,21 @@ function parseFilterExpression(expr) {
   return clauses;
 }
 
+function normalizeFilterText(input) {
+  if (!input) return undefined;
+  if (Array.isArray(input)) {
+    const cleaned = input.map((s) => String(s).trim()).filter(Boolean);
+    return cleaned.length ? cleaned : undefined;
+  }
+  const str = String(input);
+  if (str.includes(',')) {
+    const parts = str.split(',').map((s) => s.trim()).filter(Boolean);
+    return parts.length ? parts : undefined;
+  }
+  const trimmed = str.trim();
+  return trimmed ? [trimmed] : undefined;
+}
+
 function parseArgs(argv) {
   const args = {
     s3Url: undefined,
@@ -129,7 +144,7 @@ function parseArgs(argv) {
     outDir: undefined,
     region: undefined,
     concurrency: 4,
-    rawFields: ['raw', 'message', 'msg', 'log'],
+    rawFields: [],
     startAfter: undefined,
     maxKeys: 1000,
     dir: undefined,
@@ -159,7 +174,13 @@ function parseArgs(argv) {
     else if (a === '--dir') args.dir = argv[++i];
     else if (a === '--from') args.from = argv[++i];
     else if (a === '--to') args.to = argv[++i];
-    else if (a === '--filter-text') args.filterText = argv[++i];
+    else if (a === '--filter-text') {
+      const parsed = normalizeFilterText(argv[++i]);
+      if (parsed && parsed.length) {
+        if (!args.filterText) args.filterText = [];
+        args.filterText.push(...parsed);
+      }
+    }
     else if (a === '--filter-field') {
       const spec = argv[++i] || '';
       // Accept expressions with 'and'/'or' or single 'k=v'
@@ -382,14 +403,26 @@ async function writeRawLogsFromStreamToFile(readable, outFilePath, shouldGunzip)
   await pipe(source, outStream);
 }
 
-async function writeFilteredLogsFromStreamToFile(readable, outFilePath, shouldGunzip, filterText, filterFieldSpecs, fromDate, toDate, sortMode, caseInsensitive, filterFieldExprClauses) {
+async function writeFilteredLogsFromStreamToFile(
+  readable,
+  outFilePath,
+  shouldGunzip,
+  filterTextTerms,
+  filterFieldSpecs,
+  fromDate,
+  toDate,
+  sortMode,
+  caseInsensitive,
+  filterFieldExprClauses,
+  fileMode = 'w'
+) {
   return new Promise((resolve, reject) => {
     let outStream;
     let matches = 0;
     const buffer = sortMode ? [] : null;
     const createOut = () => {
       if (outStream) return;
-      outStream = fs.createWriteStream(outFilePath, { flags: 'w' });
+      outStream = fs.createWriteStream(outFilePath, { flags: fileMode });
       outStream.on('error', reject);
       outStream.on('finish', () => resolve(matches));
     };
@@ -418,6 +451,7 @@ async function writeFilteredLogsFromStreamToFile(readable, outFilePath, shouldGu
       }
       return false;
     }
+    const hasTextFilter = Array.isArray(filterTextTerms) && filterTextTerms.length > 0;
     rl.on('line', (line) => {
       // Time filter using obj.time (UTC). If from/to are not provided, skip time check.
       const includeByTime = true;
@@ -440,14 +474,23 @@ async function writeFilteredLogsFromStreamToFile(readable, outFilePath, shouldGu
       // Content filters (OR)
       const hasFieldSpecs = Array.isArray(filterFieldSpecs) && filterFieldSpecs.length > 0;
       const hasFieldExpr = Array.isArray(filterFieldExprClauses) && filterFieldExprClauses.length > 0;
-      const hasContentFilter = !!filterText || hasFieldSpecs || hasFieldExpr;
+      const hasContentFilter = hasTextFilter || hasFieldSpecs || hasFieldExpr;
       let textMatch = false;
-      if (filterText) {
-        if (caseInsensitive) {
-          textMatch = String(line).toLowerCase().includes(String(filterText).toLowerCase());
-        } else {
-          textMatch = String(line).includes(filterText);
+      if (hasTextFilter) {
+        const haystack = caseInsensitive ? String(line).toLowerCase() : String(line);
+        textMatch = true;
+        let requiredTerms = 0;
+        for (const term of filterTextTerms) {
+          const rawTerm = term === undefined || term === null ? '' : String(term);
+          const needle = caseInsensitive ? rawTerm.toLowerCase() : rawTerm;
+          if (!needle) continue;
+          requiredTerms += 1;
+          if (!haystack.includes(needle)) {
+            textMatch = false;
+            break;
+          }
         }
+        if (requiredTerms === 0) textMatch = true;
       }
       let fieldMatch = false;
       if (hasFieldSpecs) {
@@ -561,12 +604,23 @@ async function writeFilteredLogsFromStreamToFile(readable, outFilePath, shouldGu
   });
 }
 
-async function processObject(s3, bucket, key, outDir, rawFields, filterText, filterFieldSpecs, fromDate, toDate, sortMode, caseInsensitive, filterFieldExprClauses) {
-  const rawOutPath = computeOutputPath(outDir, key);
-  const outDirName = path.dirname(rawOutPath);
-  ensureDir(outDirName);
-  const filteredOut = computeFilteredOutputPath(rawOutPath);
-  console.log(`Processing s3://${bucket}/${key} -> ${filteredOut}`);
+async function processObject(
+  s3,
+  bucket,
+  key,
+  aggregatedOutPath,
+  rawFields,
+  filterText,
+  filterFieldSpecs,
+  fromDate,
+  toDate,
+  sortMode,
+  caseInsensitive,
+  filterFieldExprClauses,
+  fileMode
+) {
+  ensureDir(path.dirname(aggregatedOutPath));
+  console.log(`Processing s3://${bucket}/${key} -> ${aggregatedOutPath}`);
 
   const resp = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
   const bodyStream = resp.Body;
@@ -578,7 +632,7 @@ async function processObject(s3, bucket, key, outDir, rawFields, filterText, fil
   // Always write ONLY filtered/prettified output (if no filters provided, include all lines)
   const matched = await writeFilteredLogsFromStreamToFile(
     bodyStream,
-    filteredOut,
+    aggregatedOutPath,
     shouldGunzip,
     filterText,
     filterFieldSpecs,
@@ -586,7 +640,8 @@ async function processObject(s3, bucket, key, outDir, rawFields, filterText, fil
     toDate,
     sortMode,
     caseInsensitive,
-    filterFieldExprClauses
+    filterFieldExprClauses,
+    fileMode
   );
   if (!matched) {
     console.log(`No matching lines in s3://${bucket}/${key}; skipping file creation.`);
@@ -634,7 +689,10 @@ async function run() {
   if (args.ist === false && DEFAULTS.IST) args.ist = true;
   if (!args.from && DEFAULTS.FROM) args.from = DEFAULTS.FROM;
   if (!args.to && DEFAULTS.TO) args.to = DEFAULTS.TO;
-  if (!args.filterText && DEFAULTS.FILTER_TEXT) args.filterText = DEFAULTS.FILTER_TEXT;
+  if ((!Array.isArray(args.filterText) || args.filterText.length === 0) && DEFAULTS.FILTER_TEXT) {
+    const defaults = normalizeFilterText(DEFAULTS.FILTER_TEXT);
+    if (defaults) args.filterText = defaults;
+  }
   if (args.filterFields.length === 0 && DEFAULTS.FILTER_FIELD) {
     const src = DEFAULTS.FILTER_FIELD;
     if (/\s+(and|or)\s+/i.test(String(src))) {
@@ -660,6 +718,7 @@ async function run() {
   if (!args.dir && DEFAULTS.DIR) {
     args.dir = DEFAULTS.DIR;
   }
+  args.filterText = normalizeFilterText(args.filterText);
 
   if ((!args.s3Url && !args.bucket) || !args.outDir) {
     console.error('Error: S3 URL/bucket and output directory are required.');
@@ -678,6 +737,12 @@ async function run() {
   }
 
   ensureDir(args.outDir);
+  const aggregatedOutPath = path.join(args.outDir, 'all-logs.filtered.log');
+  try {
+    if (fs.existsSync(aggregatedOutPath)) fs.unlinkSync(aggregatedOutPath);
+  } catch (err) {
+    console.warn(`Unable to reset existing aggregated log file: ${err.message || err}`);
+  }
 
   const s3 = new S3Client({
     region: 'ap-south-1',
@@ -721,16 +786,19 @@ async function run() {
   let inFlight = 0;
   let idx = 0;
   let failed = 0;
+  let writeCount = 0;
   await new Promise((resolve) => {
     const maybeStartNext = () => {
       while (inFlight < args.concurrency && idx < filtered.length) {
         const { key } = filtered[idx++];
+        const fileMode = writeCount === 0 ? 'w' : 'a';
+        writeCount += 1;
         inFlight += 1;
         processObject(
           s3,
           args.bucket,
           key,
-          args.outDir,
+          aggregatedOutPath,
           args.rawFields,
           args.filterText,
           args.filterFields,
@@ -738,7 +806,8 @@ async function run() {
           toDate,
           args.sort,
           !!args.ci,
-          args.filterFieldExprClauses
+          args.filterFieldExprClauses,
+          fileMode
         )
           .catch((err) => {
             failed += 1;
@@ -754,6 +823,8 @@ async function run() {
     };
     maybeStartNext();
   });
+
+  console.log(`Aggregated filtered logs stored at ${aggregatedOutPath}`);
 
   if (failed > 0) {
     console.log(`Completed with ${failed} failure(s).`);
