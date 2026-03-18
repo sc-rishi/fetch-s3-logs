@@ -34,7 +34,7 @@ const readline = require('readline');
 const { pipeline } = require('stream');
 const { promisify } = require('util');
 const zlib = require('zlib');
-const { S3Client, ListObjectsV2Command, GetObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, ListObjectsV2Command, GetObjectCommand, HeadObjectCommand, S3 } = require('@aws-sdk/client-s3');
 
 const pipe = promisify(pipeline);
 
@@ -43,20 +43,22 @@ process.env.AWS_PROFILE = 'smallcase';
 process.env.AWS_SDK_LOAD_CONFIG = '1';
 process.env.AWS_REGION = 'ap-south-1';
 process.env.AWS_DEFAULT_REGION = 'ap-south-1';
-const DATE = '2025-12-11';
+const DATE = '2026-03-11';
 // Script-level defaults (can be edited directly instead of passing CLI flags)
 const DEFAULTS = {
-  S3_URL: `s3://sc-pm2logs-new/PROD/${DATE}/sc-integrations-broker-api/`,
+  // S3_URL: `s3://sc-pm2logs-new/PROD/${DATE}/sc-integrations-order-updates/`,
+  S3_URL: `s3://sc-eks-pod-logs/staging/${DATE}/integrations/sc-integrations-order-updates-pod/`,
   OUT_DIR: './logs',
   IST: true,
   FROM: `${DATE}T01:00:00`,
   TO: `${DATE}T23:50:00`,
-  FILTER_TEXT: 'upstox, no segments', // e.g. 'hdfcsky'
+  FILTER_TEXT: "69b18d89f9d2380dc816e548", // e.g. 'hdfcsky'
   // FILTER_FIELD: 'broker=hdfcsky, brokerName=hdfcsky', // string, comma-separated, or array of 'k=v'
   CONCURRENCY: 4,
   SORT: 'nf', // 'nf' | 'of' (new first | old first)
   CI: false, // case-insensitive matching for text and field,
   // DIR: 'Out-logs',
+  PARSE_MESSAGE: true, // parse JSON strings in message/raw fields into nested objects
 };
 
 function printHelpAndExit(code = 1) {
@@ -84,6 +86,7 @@ function printHelpAndExit(code = 1) {
       '                              (repeatable; repeats OR with expression result)',
       '  --sort <nf|of>             Optional: sort by JSON "time" (nf=new first, of=old first)',
       '  --ci                       Case-insensitive matching for --filter-text and --filter-field',
+      '  --parse-message            Parse JSON strings in raw/message fields into nested objects',
       '  --help                     Show this help',
       '',
       'Examples:',
@@ -156,6 +159,7 @@ function parseArgs(argv) {
     ist: false,
     sort: undefined,
     ci: undefined,
+    parseMessage: false,
   };
   for (let i = 2; i < argv.length; i += 1) {
     const a = argv[i];
@@ -203,6 +207,7 @@ function parseArgs(argv) {
       if (mode === 'nf' || mode === 'of') args.sort = mode;
       else console.warn('Ignoring --sort: expected "nf" or "of"');
     } else if (a === '--ci') args.ci = true;
+    else if (a === '--parse-message') args.parseMessage = true;
     else {
       console.warn(`Unknown argument: ${a}`);
     }
@@ -397,6 +402,23 @@ function tryExtractRawFromJsonLine(line, rawFields) {
   }
 }
 
+function tryParseNestedJsonFields(obj, rawFields) {
+  if (!obj || typeof obj !== 'object') return obj;
+  const fieldsToCheck = [...rawFields, 'message', 'msg'];
+  const result = { ...obj };
+  for (const field of fieldsToCheck) {
+    if (typeof result[field] === 'string') {
+      try {
+        const parsed = JSON.parse(result[field]);
+        if (parsed && typeof parsed === 'object') {
+          result[field] = parsed;
+        }
+      } catch { /* not JSON, leave as-is */ }
+    }
+  }
+  return result;
+}
+
 async function writeRawLogsFromStreamToFile(readable, outFilePath, shouldGunzip) {
   const outStream = fs.createWriteStream(outFilePath, { flags: 'w' });
   const source = shouldGunzip ? readable.pipe(zlib.createGunzip()) : readable;
@@ -414,12 +436,16 @@ async function writeFilteredLogsFromStreamToFile(
   sortMode,
   caseInsensitive,
   filterFieldExprClauses,
-  fileMode = 'w'
+  parseMessage = false,
+  rawFields = [],
+  fileMode = 'w',
+  externalBuffer = null
 ) {
   return new Promise((resolve, reject) => {
     let outStream;
     let matches = 0;
-    const buffer = sortMode ? [] : null;
+    // When an externalBuffer is provided (global sort), we never write to file here
+    const buffer = (sortMode && externalBuffer) ? externalBuffer : (sortMode ? [] : null);
     const createOut = () => {
       if (outStream) return;
       outStream = fs.createWriteStream(outFilePath, { flags: fileMode });
@@ -551,7 +577,8 @@ async function writeFilteredLogsFromStreamToFile(
       } else {
         createOut();
         try {
-          const obj = parsedObj ?? JSON.parse(line);
+          let obj = parsedObj ?? JSON.parse(line);
+          if (parseMessage) obj = tryParseNestedJsonFields(obj, rawFields);
           outStream.write(`${JSON.stringify(obj, null, 2)},\n`);
         } catch {
           const wrapped = { raw: line };
@@ -561,7 +588,10 @@ async function writeFilteredLogsFromStreamToFile(
       }
     });
     rl.on('close', () => {
-      if (buffer) {
+      if (buffer && externalBuffer) {
+        // Items were pushed into the shared externalBuffer; global sort/write happens in run()
+        resolve(matches);
+      } else if (buffer) {
         if (buffer.length === 0) {
           resolve(0);
           return;
@@ -583,7 +613,8 @@ async function writeFilteredLogsFromStreamToFile(
         for (const item of buffer) {
           try {
             if (item.obj) {
-              outStream.write(`${JSON.stringify(item.obj, null, 2)},\n`);
+              const outObj = parseMessage ? tryParseNestedJsonFields(item.obj, rawFields) : item.obj;
+              outStream.write(`${JSON.stringify(outObj, null, 2)},\n`);
             } else {
               const wrapped = { raw: item.line };
               outStream.write(`${JSON.stringify(wrapped, null, 2)},\n`);
@@ -617,7 +648,9 @@ async function processObject(
   sortMode,
   caseInsensitive,
   filterFieldExprClauses,
-  fileMode
+  parseMessage,
+  fileMode,
+  externalBuffer = null
 ) {
   ensureDir(path.dirname(aggregatedOutPath));
   console.log(`Processing s3://${bucket}/${key} -> ${aggregatedOutPath}`);
@@ -641,7 +674,10 @@ async function processObject(
     sortMode,
     caseInsensitive,
     filterFieldExprClauses,
-    fileMode
+    parseMessage,
+    rawFields,
+    fileMode,
+    externalBuffer
   );
   if (!matched) {
     console.log(`No matching lines in s3://${bucket}/${key}; skipping file creation.`);
@@ -715,6 +751,9 @@ async function run() {
   if (args.ci === undefined && typeof DEFAULTS.CI === 'boolean') {
     args.ci = DEFAULTS.CI;
   }
+  if (!args.parseMessage && typeof DEFAULTS.PARSE_MESSAGE === 'boolean') {
+    args.parseMessage = DEFAULTS.PARSE_MESSAGE;
+  }
   if (!args.dir && DEFAULTS.DIR) {
     args.dir = DEFAULTS.DIR;
   }
@@ -782,6 +821,9 @@ async function run() {
   const progressBar = createDownloadProgressBar(filtered.length);
   progressBar.render();
 
+  // When sorting, collect all entries globally so the final output is sorted across all S3 objects
+  const globalBuffer = args.sort ? [] : null;
+
   // Simple concurrency control
   let inFlight = 0;
   let idx = 0;
@@ -807,7 +849,9 @@ async function run() {
           args.sort,
           !!args.ci,
           args.filterFieldExprClauses,
-          fileMode
+          !!args.parseMessage,
+          fileMode,
+          globalBuffer
         )
           .catch((err) => {
             failed += 1;
@@ -823,6 +867,40 @@ async function run() {
     };
     maybeStartNext();
   });
+
+  // Perform global sort and write once after all objects are processed
+  if (globalBuffer) {
+    globalBuffer.sort((a, b) => {
+      const aValid = Number.isFinite(a.tMs);
+      const bValid = Number.isFinite(b.tMs);
+      if (aValid && bValid) {
+        return args.sort === 'of' ? a.tMs - b.tMs : b.tMs - a.tMs;
+      }
+      if (aValid && !bValid) return -1;
+      if (!aValid && bValid) return 1;
+      return a.idx - b.idx;
+    });
+    if (globalBuffer.length > 0) {
+      const outStream = fs.createWriteStream(aggregatedOutPath, { flags: 'w' });
+      for (const item of globalBuffer) {
+        try {
+          if (item.obj) {
+            const outObj = args.parseMessage ? tryParseNestedJsonFields(item.obj, args.rawFields) : item.obj;
+            outStream.write(`${JSON.stringify(outObj, null, 2)},\n`);
+          } else {
+            outStream.write(`${JSON.stringify({ raw: item.line }, null, 2)},\n`);
+          }
+        } catch {
+          outStream.write(`${JSON.stringify({ raw: item.line }, null, 2)},\n`);
+        }
+      }
+      await new Promise((resolve, reject) => {
+        outStream.end();
+        outStream.on('finish', resolve);
+        outStream.on('error', reject);
+      });
+    }
+  }
 
   console.log(`Aggregated filtered logs stored at ${aggregatedOutPath}`);
 
