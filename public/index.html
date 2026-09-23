@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fetch-s3-logs</title>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3248;
+      --accent: #5b7fff;
+      --green: #3ecf8e;
+      --red: #f87171;
+      --yellow: #fbbf24;
+      --orange: #fb923c;
+      --purple: #c084fc;
+      --muted: #6b7280;
+      --text: #e2e8f0;
+      --text-dim: #94a3b8;
+      --radius: 8px;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* ── Layout ─────────────────────────────────────────── */
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    header h1 {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: .3px;
+    }
+
+    header .badge {
+      font-size: 11px;
+      background: var(--surface2);
+      color: var(--accent);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 7px;
+    }
+
+    .header-right {
+      margin-left: auto;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 340px;
+      min-width: 300px;
+      max-width: 420px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      resize: horizontal;
+    }
+
+    .sidebar-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    /* Content */
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text-dim);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color .15s;
+    }
+
+    .tab:hover {
+      color: var(--text);
+    }
+
+    .tab.active {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .tab-panel {
+      flex: 1;
+      overflow: hidden;
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Output panel ──────────────────────────────────── */
+    #output-panel {
+      flex-direction: column;
+    }
+
+    /* Console section */
+    .console-section {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .panel-header strong {
+      color: var(--text-dim);
+      font-size: 12px;
+    }
+
+    .panel-header .spacer {
+      flex: 1;
+    }
+
+    #console-out {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 14px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.7;
+      background: #0a0c14;
+    }
+
+    .line-stdout {
+      color: #c8d3f5;
+    }
+
+    .line-stderr {
+      color: var(--yellow);
+    }
+
+    .line-done-ok {
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    .line-done-err {
+      color: var(--red);
+      font-weight: 600;
+    }
+
+    .line-cmd {
+      color: var(--muted);
+      font-style: italic;
+      margin-bottom: 4px;
+    }
+
+    .line-info {
+      color: var(--accent);
+    }
+
+    /* Live logs section */
+    .live-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 60px;
+    }
+
+    #live-logs {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 10px;
+      background: #0a0c14;
+    }
+
+    /* Log entry card */
+    .log-entry {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 6px;
+      background: var(--surface);
+      overflow: hidden;
+      font-size: 12px;
+    }
+
+    .log-entry-head {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      padding: 6px 10px;
+      cursor: pointer;
+      user-select: none;
+      transition: background .1s;
+    }
+
+    .log-entry-head:hover {
+      background: var(--surface2);
+    }
+
+    .log-time {
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .log-level {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .level-info {
+      background: #1e3a5f;
+      color: #60a5fa;
+    }
+
+    .level-warn {
+      background: #3b2e00;
+      color: #fbbf24;
+    }
+
+    .level-error {
+      background: #3b1010;
+      color: #f87171;
+    }
+
+    .level-debug {
+      background: #1e2a1e;
+      color: #86efac;
+    }
+
+    .level-other {
+      background: var(--surface2);
+      color: var(--text-dim);
+    }
+
+    .log-msg {
+      flex: 1;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .log-expand {
+      color: var(--muted);
+      font-size: 10px;
+      flex-shrink: 0;
+    }
+
+    .log-entry-body {
+      display: none;
+      padding: 0 10px 8px;
+      background: #0d0f1a;
+    }
+
+    .log-entry-body.open {
+      display: block;
+    }
+
+    /* Key-value summary row */
+    .log-kvs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 6px 10px 4px;
+      border-top: 1px solid var(--border);
+      background: var(--surface2);
+    }
+
+    .kv-chip {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 1px 5px;
+      color: var(--text-dim);
+    }
+
+    .kv-chip .kv-key {
+      color: #7dd3fc;
+    }
+
+    .kv-chip .kv-sep {
+      color: var(--muted);
+    }
+
+    .kv-chip .kv-val {
+      color: #a5f3a5;
+    }
+
+    /* JSON viewer */
+    .json-viewer {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.6;
+      color: #c8d3f5;
+      white-space: pre-wrap;
+      word-break: break-all;
+      padding: 8px 4px;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+
+    .jk {
+      color: #7dd3fc;
+    }
+
+    .jv {
+      color: #a5f3a5;
+    }
+
+    .jn {
+      color: #fca5a5;
+    }
+
+    .jb {
+      color: #c4b5fd;
+    }
+
+    /* Tail status bar */
+    .live-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px;
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .tail-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .tail-dot.active {
+      background: var(--green);
+      animation: pulse 1.2s infinite;
+    }
+
+    .tail-dot.done {
+      background: var(--accent);
+    }
+
+    .live-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--muted);
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .live-empty svg {
+      opacity: .3;
+    }
+
+    /* Logs browser */
+    #logs-panel {
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    .logs-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .log-list {
+      list-style: none;
+    }
+
+    .log-list li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background .1s;
+    }
+
+    .log-list li:hover {
+      background: var(--surface2);
+    }
+
+    .log-list li.selected {
+      background: var(--surface2);
+      outline: 1px solid var(--border);
+    }
+
+    .log-name {
+      flex: 1;
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    .log-size {
+      color: var(--muted);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .log-mtime {
+      color: var(--muted);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    #file-viewer {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      border-top: 1px solid var(--border);
+      margin-top: 12px;
+    }
+
+    #file-viewer.open {
+      display: flex;
+    }
+
+    .viewer-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    #file-content {
+      flex: 1;
+      overflow: auto;
+      padding: 14px 16px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.6;
+      background: #0a0c14;
+      white-space: pre;
+      color: #c8d3f5;
+    }
+
+    /* Form styles */
+    .section {
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .field {
+      margin-bottom: 10px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+    }
+
+    .field label span.required {
+      color: var(--red);
+    }
+
+    input[type=text],
+    input[type=number],
+    input[type="datetime-local"],
+    select,
+    textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      padding: 7px 10px;
+      font-size: 13px;
+      font-family: inherit;
+      transition: border-color .15s;
+      outline: none;
+    }
+
+    input[type=text],
+    input[type=number],
+    input[type="datetime-local"] {
+      color-scheme: dark;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: var(--muted);
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .row .field {
+      flex: 1;
+    }
+
+    /* Toggle */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .toggle-row label {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    .toggle {
+      position: relative;
+      width: 38px;
+      height: 20px;
+      cursor: pointer;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      transition: background .2s;
+    }
+
+    .toggle-slider::after {
+      content: '';
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      left: 2px;
+      top: 2px;
+      background: var(--muted);
+      border-radius: 50%;
+      transition: transform .2s, background .2s;
+    }
+
+    .toggle input:checked+.toggle-slider {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .toggle input:checked+.toggle-slider::after {
+      transform: translateX(18px);
+      background: #fff;
+    }
+
+    /* Segmented */
+    .seg {
+      display: flex;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .seg label {
+      flex: 1;
+      cursor: pointer;
+    }
+
+    .seg label input[type=radio] {
+      display: none;
+    }
+
+    .seg label span {
+      display: block;
+      text-align: center;
+      padding: 6px 10px;
+      font-size: 12px;
+      color: var(--text-dim);
+      transition: background .15s, color .15s;
+    }
+
+    .seg label input:checked+span {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity .15s, filter .15s;
+    }
+
+    .btn:hover {
+      filter: brightness(1.1);
+    }
+
+    .btn:active {
+      filter: brightness(.9);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-danger {
+      background: var(--red);
+      color: #fff;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+    }
+
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 12px;
+    }
+
+    .btn:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    /* Status pill */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      padding: 3px 9px;
+      border-radius: 99px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+
+    .dot.running {
+      background: var(--green);
+      animation: pulse 1.2s infinite;
+    }
+
+    .dot.error {
+      background: var(--red);
+    }
+
+    .dot.done {
+      background: var(--green);
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .4
+      }
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 14px 0;
+    }
+
+    .hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .empty-state {
+      color: var(--muted);
+      text-align: center;
+      padding: 40px 0;
+      font-size: 13px;
+    }
+
+    /* scroll-lock icon */
+    .icon-lock {
+      opacity: .5;
+    }
+
+    .icon-lock.locked {
+      opacity: 1;
+      color: var(--accent);
+    }
+
+    /* ── Field picker ───────────────────────────────────── */
+    .field-list {
+      max-height: 260px;
+      overflow-y: auto;
+    }
+
+    .field-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 0;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+      cursor: pointer;
+    }
+
+    .field-item:hover { color: var(--text); }
+
+    .field-item input[type="checkbox"] {
+      cursor: pointer;
+      accent-color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    /* ── Log table ──────────────────────────────────────── */
+    #log-table-container {
+      flex: 1;
+      overflow: auto;
+      display: none;
+    }
+
+    #log-table-container.active { display: block; }
+
+    #live-logs.hidden { display: none; }
+
+    .log-table {
+      width: 100%;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      border-collapse: collapse;
+    }
+
+    .log-table th {
+      text-align: left;
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-dim);
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      white-space: nowrap;
+    }
+
+    .log-table td {
+      padding: 4px 10px;
+      border-bottom: 1px solid #1a1d27;
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .log-table tr:hover td { background: var(--surface2); }
+
+    /* View mode toggle */
+    .view-toggle {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .view-toggle button {
+      padding: 2px 8px;
+      font-size: 11px;
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+    }
+
+    .view-toggle button.active {
+      background: var(--accent);
+      color: #fff;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        style="color:var(--accent)">
+        <ellipse cx="12" cy="5" rx="9" ry="3" />
+        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+        <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3" />
+      </svg>
+      <h1>fetch-s3-logs</h1>
+      <span class="badge" id="s3-badge">s3://…</span>
+      <div class="header-right">
+        <span class="status-pill" id="status-pill"><span class="dot" id="status-dot"></span><span
+            id="status-text">Idle</span></span>
+        <button class="btn btn-ghost btn-sm" id="stop-btn" style="display:none" onclick="stopJob()">■ Stop</button>
+        <button class="btn btn-primary" id="run-btn" onclick="runJob()">▶ Run</button>
+      </div>
+    </header>
+
+    <div class="main">
+      <!-- Sidebar: config form -->
+      <div class="sidebar">
+        <div class="sidebar-scroll">
+          <form id="config-form">
+
+            <!-- S3 Source -->
+            <div class="section">
+              <div class="section-title">S3 Source</div>
+
+              <!-- Environment -->
+              <div class="field">
+                <label>Environment <span class="required">*</span></label>
+                <select id="env">
+                  <option value="">Select environment</option>
+                  <option value="staging">Staging</option>
+                  <option value="prod">Prod</option>
+                </select>
+              </div>
+
+              <!-- Date -->
+              <div class="field">
+                <label>Date & Time <span class="required">*</span></label>
+                <input type="datetime-local" id="dateTime" />
+              </div>
+
+              <!-- Pod -->
+              <div class="field">
+                <label>Pod <span class="required">*</span></label>
+                <select id="pod">
+                  <option value="">Select pod</option>
+                  <option value="order-updates">Order Updates</option>
+                  <option value="broker-api">Broker API</option>
+                </select>
+              </div>
+
+              <!-- Generated S3 -->
+              <div class="field">
+                <label>Generated S3 URL</label>
+                <input type="text" id="s3Url" readonly />
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="divider"></div>
+
+            <!-- Filters -->
+            <div class="section">
+              <div class="section-title">Filters</div>
+              <div class="field">
+                <label>Filter Text <span style="color:var(--muted)">(ALL substrings must match)</span></label>
+                <input type="text" id="filterText" placeholder="e.g. hdfcsky,error" />
+                <div class="hint">Comma-separated — every term must be present in the line</div>
+              </div>
+              <div class="field">
+                <label>Filter Field <span style="color:var(--muted)">(key=value, and/or)</span></label>
+                <input type="text" id="filterField" placeholder="broker=hdfcsky and status=FAILED" />
+                <div class="hint">Supports: k=v &nbsp;|&nbsp; k1=v1 and k2=v2 &nbsp;|&nbsp; k1=v1 or k2=v2</div>
+              </div>
+              <div class="toggle-row">
+                <label>Case-insensitive matching</label>
+                <label class="toggle"><input type="checkbox" id="ci"><span class="toggle-slider"></span></label>
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Output & Processing -->
+            <div class="section">
+              <div class="section-title">Output & Processing</div>
+              <div class="field">
+                <label>Output Directory <span class="required">*</span></label>
+                <input type="text" id="outDir" placeholder="./logs" />
+              </div>
+              <div class="field">
+                <label>Sort</label>
+                <div class="seg">
+                  <label><input type="radio" name="sort" value="nf" checked><span>New First</span></label>
+                  <label><input type="radio" name="sort" value="of"><span>Old First</span></label>
+                  <label><input type="radio" name="sort" value=""><span>None</span></label>
+                </div>
+              </div>
+              <div class="toggle-row">
+                <label>Parse Message JSON</label>
+                <label class="toggle"><input type="checkbox" id="parseMessage"><span
+                    class="toggle-slider"></span></label>
+              </div>
+              <div class="row">
+                <div class="field">
+                  <label>Concurrency</label>
+                  <input type="number" id="concurrency" min="1" max="20" placeholder="4" />
+                </div>
+                <div class="field">
+                  <label>Max Keys</label>
+                  <input type="number" id="maxKeys" min="1" placeholder="1000" />
+                </div>
+              </div>
+              <div class="field">
+                <label>Raw Fields</label>
+                <input type="text" id="rawFields" placeholder="raw,message,msg,log" />
+              </div>
+              <div class="field">
+                <label>Start After</label>
+                <input type="text" id="startAfter" placeholder="(optional S3 key)" />
+              </div>
+            </div>
+
+          </form>
+
+          <div class="divider"></div>
+          <div class="section">
+            <div class="section-title">Fields <span id="field-count" style="color:var(--muted);font-weight:400;font-size:10px"></span></div>
+            <input type="text" id="field-search" placeholder="Search fields…" oninput="renderFieldSidebar()"
+              style="width:100%;margin-bottom:6px;font-size:11px;padding:4px 7px" />
+            <div class="field-list" id="field-list">
+              <div style="color:var(--muted);font-size:11px">Fields appear as logs stream in.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right content -->
+      <div class="content">
+        <div class="tabs">
+          <div class="tab active" data-tab="output">Output</div>
+          <div class="tab" data-tab="live">Live Logs</div>
+          <div class="tab" data-tab="logs">Log Files</div>
+        </div>
+
+        <!-- Output tab: console only -->
+        <div class="tab-panel active" id="output-panel">
+          <div class="console-section" id="console-section" style="height:100%;flex:1">
+            <div class="panel-header">
+              <strong>Console</strong>
+              <span class="spacer"></span>
+              <button class="btn btn-ghost btn-sm" onclick="clearConsole()"
+                style="padding:2px 8px;font-size:11px">Clear</button>
+            </div>
+            <div id="console-out">
+              <div class="line-info">Configure the job on the left and press ▶ Run.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Logs tab -->
+        <div class="tab-panel" id="live-panel">
+          <div class="live-section" style="flex:1">
+            <div class="panel-header">
+              <strong>Live Logs</strong>
+              <span id="match-count" style="color:var(--green);font-weight:600;font-size:12px"></span>
+              <span class="spacer"></span>
+              <button class="btn btn-ghost btn-sm" id="scroll-lock-btn" onclick="toggleScrollLock()"
+                style="padding:2px 8px;font-size:11px" title="Auto-scroll">
+                ↓ Auto-scroll
+              </button>
+              <button class="btn btn-ghost btn-sm" onclick="clearLiveLogs()"
+                style="padding:2px 8px;font-size:11px">Clear</button>
+              <div class="view-toggle">
+                <button id="view-card-btn" class="active" onclick="setView('card')">Cards</button>
+                <button id="view-table-btn" onclick="setView('table')">Table</button>
+              </div>
+            </div>
+
+            <div id="live-logs">
+              <div class="live-empty" id="live-empty">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path
+                    d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18" />
+                </svg>
+                <span>Matched log entries will appear here as the job runs.</span>
+                <span style="font-size:11px;color:var(--muted)">Note: when Sort is enabled, entries arrive after all
+                  files are processed.</span>
+              </div>
+            </div>
+            <div id="log-table-container"></div>
+
+            <div class="live-status">
+              <span class="tail-dot" id="tail-dot"></span>
+              <span id="tail-status">Idle</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Logs browser tab -->
+        <div class="tab-panel" id="logs-panel-tab">
+          <div id="logs-panel">
+            <div class="logs-header">
+              <strong style="font-size:13px">Output files</strong>
+              <button class="btn btn-ghost btn-sm" onclick="loadLogs()">↻ Refresh</button>
+              <span id="log-count" style="color:var(--muted);font-size:12px"></span>
+            </div>
+            <ul class="log-list" id="log-list">
+              <li>
+                <div class="empty-state">No log files yet. Run the job to generate output.</div>
+              </li>
+            </ul>
+            <div id="file-viewer">
+              <div class="viewer-header">
+                <span id="viewer-filename" style="font-family:var(--font-mono);color:var(--text-dim)"></span>
+                <span id="viewer-size" style="color:var(--muted);margin-left:auto"></span>
+                <button class="btn btn-ghost btn-sm" onclick="closeViewer()">✕ Close</button>
+              </div>
+              <div id="file-content"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── Tabs ────────────────────────────────────────────────
+    const TAB_PANELS = { output: 'output-panel', live: 'live-panel', logs: 'logs-panel-tab' };
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(TAB_PANELS[tab.dataset.tab]).classList.add('active');
+        if (tab.dataset.tab === 'logs') loadLogs();
+      });
+    });
+
+    // ── Load defaults ────────────────────────────────────────
+    async function loadDefaults() {
+      try {
+        const res = await fetch('/api/defaults');
+        const { defaults: d } = await res.json();
+        if (d.S3_URL) setVal('s3Url', d.S3_URL);
+        if (d.OUT_DIR) setVal('outDir', d.OUT_DIR);
+        if (d.FROM) setVal('from', d.FROM);
+        if (d.TO) setVal('to', d.TO);
+        if (d.FILTER_TEXT) setVal('filterText', d.FILTER_TEXT);
+        if (d.FILTER_FIELD) setVal('filterField', Array.isArray(d.FILTER_FIELD) ? d.FILTER_FIELD.join(', ') : d.FILTER_FIELD);
+        if (d.CONCURRENCY) setVal('concurrency', d.CONCURRENCY);
+        if (typeof d.IST === 'boolean') { const el = document.getElementById('ist'); if (el) el.checked = d.IST; }
+        if (typeof d.CI === 'boolean') document.getElementById('ci').checked = d.CI;
+        if (typeof d.PARSE_MESSAGE === 'boolean') document.getElementById('parseMessage').checked = d.PARSE_MESSAGE;
+        if (d.SORT) { const r = document.querySelector(`input[name=sort][value="${d.SORT}"]`); if (r) r.checked = true; }
+        if (d.DIR) setVal('dir', d.DIR);
+        updateBadge();
+      } catch (e) { console.warn('Could not load defaults', e); }
+    }
+
+    function setVal(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.value = val != null ? val : '';
+    }
+
+    function updateBadge() {
+      const s3 = document.getElementById('s3Url').value.trim();
+      const badge = document.getElementById('s3-badge');
+      badge.textContent = s3 ? (s3.length > 50 ? '…' + s3.slice(-46) : s3) : 's3://…';
+    }
+    document.getElementById('s3Url').addEventListener('input', updateBadge);
+
+    // ── Run job ──────────────────────────────────────────────
+    let activeReader = null;
+    let tailReader = null;
+
+    function getFormData() {
+      const sort = document.querySelector('input[name=sort]:checked')?.value;
+      return {
+        s3Url: document.getElementById('s3Url').value.trim() || undefined,
+        outDir: document.getElementById('outDir').value.trim() || './logs',
+        filterText: document.getElementById('filterText').value.trim() || undefined,
+        filterField: document.getElementById('filterField').value.trim() || undefined,
+        sort: sort || undefined,
+        ci: document.getElementById('ci').checked,
+        parseMessage: document.getElementById('parseMessage').checked,
+        concurrency: parseInt(document.getElementById('concurrency').value) || undefined,
+        rawFields: document.getElementById('rawFields').value.trim() || undefined,
+        startAfter: document.getElementById('startAfter').value.trim() || undefined,
+        maxKeys: parseInt(document.getElementById('maxKeys').value) || undefined,
+      };
+    }
+
+    async function runJob() {
+      if (activeReader) stopJob();
+
+      document.getElementById('console-out').innerHTML = '';
+      clearLiveLogs();
+      setStatus('running', 'Running…');
+      document.getElementById('run-btn').disabled = true;
+      document.getElementById('stop-btn').style.display = '';
+
+      const body = getFormData();
+
+      // Start tailing the output file
+      startTail(body.outDir || './logs');
+
+      try {
+        const resp = await fetch('/api/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        activeReader = reader;
+
+        const readLoop = async () => {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buf += decoder.decode(value, { stream: true });
+            const parts = buf.split('\n\n');
+            buf = parts.pop();
+            for (const part of parts) {
+              if (part.startsWith('data: ')) {
+                try {
+                  const msg = JSON.parse(part.slice(6));
+                  appendConsole(msg);
+                  if (msg.type === 'done') {
+                    const ok = msg.data.includes('successfully');
+                    setStatus(ok ? 'done' : 'error', msg.data);
+                    finishJob();
+                    return;
+                  }
+                } catch { }
+              }
+            }
+          }
+          finishJob();
+        };
+
+        readLoop().catch(e => { appendConsole({ type: 'stderr', data: String(e) }); finishJob(); });
+
+      } catch (e) {
+        appendConsole({ type: 'stderr', data: String(e) });
+        setStatus('error', 'Failed to start');
+        finishJob();
+      }
+    }
+
+    function stopJob() {
+      if (activeReader) { try { activeReader.cancel(); } catch { } activeReader = null; }
+      stopTail();
+      setStatus('idle', 'Stopped');
+      finishJob();
+    }
+
+    function finishJob() {
+      activeReader = null;
+      document.getElementById('run-btn').disabled = false;
+      document.getElementById('stop-btn').style.display = 'none';
+      // Stop tail after a short delay so final bytes are captured
+      setTimeout(stopTail, 1200);
+    }
+
+    function clearConsole() {
+      document.getElementById('console-out').innerHTML = '';
+    }
+
+    function appendConsole(msg) {
+      const out = document.getElementById('console-out');
+      const div = document.createElement('div');
+      if (msg.type === 'cmd') { div.className = 'line-cmd'; div.textContent = '$ ' + msg.data; }
+      else if (msg.type === 'stdout') { div.className = 'line-stdout'; div.textContent = msg.data; }
+      else if (msg.type === 'stderr') { div.className = 'line-stderr'; div.textContent = msg.data; }
+      else if (msg.type === 'done') {
+        div.className = msg.data.includes('successfully') ? 'line-done-ok' : 'line-done-err';
+        div.textContent = '✓ ' + msg.data;
+      }
+      out.appendChild(div);
+      out.scrollTop = out.scrollHeight;
+    }
+
+    function setStatus(state, text) {
+      document.getElementById('status-dot').className = 'dot ' + state;
+      document.getElementById('status-text').textContent = text;
+    }
+
+    // ── Kibana-style field discovery ─────────────────────────
+    const fieldSet = new Set();
+    let selectedFields = new Set(['time', 'level', 'message']);
+    let logsBuffer = [];
+    let currentView = 'card';
+
+    function extractFields(obj, prefix) {
+      prefix = prefix || '';
+      let fields = [];
+      for (const key in obj) {
+        if (!Object.prototype.hasOwnProperty.call(obj, key)) continue;
+        const fullKey = prefix ? prefix + '.' + key : key;
+        if (fullKey.length > 80) continue;
+        fields.push(fullKey);
+        if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
+          fields = fields.concat(extractFields(obj[key], fullKey));
+        }
+      }
+      return fields;
+    }
+
+    function getValue(obj, path) {
+      return path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
+    }
+
+    function renderFieldSidebar() {
+      const container = document.getElementById('field-list');
+      if (!container) return;
+      const countEl = document.getElementById('field-count');
+      if (countEl) countEl.textContent = `(${fieldSet.size})`;
+      container.innerHTML = '';
+      const query = (document.getElementById('field-search')?.value || '').toLowerCase();
+      [...fieldSet].sort().filter(f => !query || f.toLowerCase().includes(query)).forEach(field => {
+        const div = document.createElement('div');
+        div.className = 'field-item';
+        const checked = selectedFields.has(field) ? 'checked' : '';
+        div.innerHTML = `<input type="checkbox" ${checked} /><span>${esc(field)}</span>`;
+        div.querySelector('input').onchange = (e) => {
+          if (e.target.checked) selectedFields.add(field);
+          else selectedFields.delete(field);
+          rerenderLogs();
+        };
+        container.appendChild(div);
+      });
+    }
+
+    function renderTable() {
+      const container = document.getElementById('log-table-container');
+      if (!container) return;
+      const fields = [...selectedFields];
+      if (!fields.length || !logsBuffer.length) {
+        container.innerHTML = '<div style="color:var(--muted);padding:20px;font-size:13px">No data — select fields from the sidebar and stream some logs.</div>';
+        return;
+      }
+      let html = `<table class="log-table"><thead><tr>${fields.map(f => `<th>${esc(f)}</th>`).join('')}</tr></thead><tbody>`;
+      for (const log of logsBuffer.slice(-500)) {
+        html += '<tr>' + fields.map(f => {
+          let val = getValue(log, f);
+          if (val === undefined || val === null) val = '';
+          else if (typeof val === 'object') val = JSON.stringify(val);
+          else val = String(val);
+          const display = val.length > 80 ? val.slice(0, 78) + '\u2026' : val;
+          return `<td title="${esc(val)}">${esc(display)}</td>`;
+        }).join('') + '</tr>';
+      }
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    function rerenderLogs() {
+      if (currentView === 'table') renderTable();
+    }
+
+    function setView(view) {
+      currentView = view;
+      const liveLogs = document.getElementById('live-logs');
+      const tableContainer = document.getElementById('log-table-container');
+      const cardBtn = document.getElementById('view-card-btn');
+      const tableBtn = document.getElementById('view-table-btn');
+      if (view === 'table') {
+        liveLogs.classList.add('hidden');
+        tableContainer.classList.add('active');
+        cardBtn.classList.remove('active');
+        tableBtn.classList.add('active');
+        renderTable();
+      } else {
+        liveLogs.classList.remove('hidden');
+        tableContainer.classList.remove('active');
+        cardBtn.classList.add('active');
+        tableBtn.classList.remove('active');
+      }
+    }
+
+    // ── Live tail ────────────────────────────────────────────
+    let matchCount = 0;
+    let autoScroll = true;
+
+    function toggleScrollLock() {
+      autoScroll = !autoScroll;
+      const btn = document.getElementById('scroll-lock-btn');
+      btn.textContent = autoScroll ? '↓ Auto-scroll' : '⏸ Paused';
+      btn.style.color = autoScroll ? '' : 'var(--yellow)';
+    }
+
+    function startTail(outDir) {
+      if (tailReader) stopTail();
+      setTailStatus('active', 'Tailing…');
+
+      fetch(`/api/tail?outDir=${encodeURIComponent(outDir)}`)
+        .then(resp => {
+          const reader = resp.body.getReader();
+          const decoder = new TextDecoder();
+          tailReader = reader;
+          let buf = '';
+
+          const readLoop = async () => {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              buf += decoder.decode(value, { stream: true });
+              const parts = buf.split('\n\n');
+              buf = parts.pop();
+              for (const part of parts) {
+                if (part.startsWith('data: ')) {
+                  try { appendLogEntry(JSON.parse(part.slice(6))); } catch { }
+                }
+              }
+            }
+            setTailStatus('done', `Done — ${matchCount} match${matchCount !== 1 ? 'es' : ''}`);
+          };
+
+          readLoop().catch(() => setTailStatus('', 'Disconnected'));
+        })
+        .catch(() => setTailStatus('', 'Failed'));
+    }
+
+    function stopTail() {
+      if (tailReader) { try { tailReader.cancel(); } catch { } tailReader = null; }
+    }
+
+    function setTailStatus(state, text) {
+      document.getElementById('tail-dot').className = 'tail-dot ' + state;
+      document.getElementById('tail-status').textContent = text;
+    }
+
+    function clearLiveLogs() {
+      const container = document.getElementById('live-logs');
+      container.innerHTML = `
+    <div class="live-empty" id="live-empty">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/>
+      </svg>
+      <span>Matched log entries will appear here as the job runs.</span>
+      <span style="font-size:11px;color:var(--muted)">Note: when Sort is enabled, entries arrive after all files are processed.</span>
+    </div>`;
+      matchCount = 0;
+      document.getElementById('match-count').textContent = '';
+      logsBuffer = [];
+      fieldSet.clear();
+      selectedFields = new Set(['time', 'level', 'message']);
+      renderFieldSidebar();
+      const tableContainer = document.getElementById('log-table-container');
+      if (tableContainer) tableContainer.innerHTML = '';
+    }
+
+    function appendLogEntry(obj) {
+      const container = document.getElementById('live-logs');
+      // Remove empty state on first entry
+      const emptyEl = document.getElementById('live-empty');
+      if (emptyEl) emptyEl.remove();
+
+      matchCount++;
+      document.getElementById('match-count').textContent = `${matchCount} match${matchCount !== 1 ? 'es' : ''}`;
+
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+
+      // Extract common fields
+      const timeRaw = obj.time || obj.timestamp || obj['@timestamp'] || '';
+      const timeStr = timeRaw ? fmtLogTime(timeRaw) : '';
+      const level = (obj.level || obj.severity || obj.lvl || '').toString().toLowerCase();
+      const msg = obj.message || obj.msg || obj.raw || obj.log || '';
+
+      // Level class
+      const levelClass = level.startsWith('err') ? 'level-error'
+        : level.startsWith('warn') ? 'level-warn'
+          : level.startsWith('debug') || level === 'trace' ? 'level-debug'
+            : level ? 'level-info' : 'level-other';
+
+      // Key chips — show up to 6 interesting fields (excluding very common ones)
+      const skipKeys = new Set(['time', 'timestamp', '@timestamp', 'level', 'severity', 'lvl', 'message', 'msg', 'raw', 'log', 'v', 'pid', 'hostname']);
+      const kvPairs = Object.entries(obj)
+        .filter(([k]) => !skipKeys.has(k))
+        .slice(0, 6);
+
+      const kvHtml = kvPairs.length ? `
+    <div class="log-kvs">
+      ${kvPairs.map(([k, v]) => {
+        const val = typeof v === 'object' ? JSON.stringify(v) : String(v);
+        const display = val.length > 40 ? val.slice(0, 38) + '…' : val;
+        return `<span class="kv-chip"><span class="kv-key">${esc(k)}</span><span class="kv-sep">=</span><span class="kv-val">${esc(display)}</span></span>`;
+      }).join('')}
+    </div>` : '';
+
+      entry.innerHTML = `
+    <div class="log-entry-head" onclick="toggleEntry(this)">
+      ${timeStr ? `<span class="log-time">${timeStr}</span>` : ''}
+      ${level ? `<span class="log-level ${levelClass}">${level}</span>` : ''}
+      <span class="log-msg">${esc(String(msg).slice(0, 200))}</span>
+      <span class="log-expand">▶</span>
+    </div>
+    ${kvHtml}
+    <div class="log-entry-body">
+      <div class="json-viewer">${syntaxHighlight(JSON.stringify(obj, null, 2))}</div>
+    </div>`;
+
+      container.appendChild(entry);
+
+      if (autoScroll) container.scrollTop = container.scrollHeight;
+
+      // Field discovery + buffer for table view
+      logsBuffer.push(obj);
+      extractFields(obj).forEach(f => fieldSet.add(f));
+      renderFieldSidebar();
+      if (currentView === 'table') renderTable();
+    }
+
+    function toggleEntry(head) {
+      const body = head.closest('.log-entry').querySelector('.log-entry-body');
+      const arrow = head.querySelector('.log-expand');
+      body.classList.toggle('open');
+      arrow.textContent = body.classList.contains('open') ? '▼' : '▶';
+    }
+
+    // ── Time formatting ──────────────────────────────────────
+    function fmtLogTime(raw) {
+      try {
+        const d = new Date(raw);
+        if (isNaN(d)) return raw;
+        // Show in IST
+        return d.toLocaleString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          hour12: false,
+          month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', second: '2-digit',
+        }).replace(',', '');
+      } catch { return raw; }
+    }
+
+    // ── Logs browser ─────────────────────────────────────────
+    async function loadLogs() {
+      const list = document.getElementById('log-list');
+      list.innerHTML = '<li><div class="empty-state">Loading…</div></li>';
+      try {
+        const files = await (await fetch('/api/logs')).json();
+        document.getElementById('log-count').textContent = files.length ? `${files.length} file(s)` : '';
+        if (!files.length) { list.innerHTML = '<li><div class="empty-state">No log files yet.</div></li>'; return; }
+        files.sort((a, b) => b.mtime - a.mtime);
+        list.innerHTML = '';
+        for (const f of files) {
+          const li = document.createElement('li');
+          li.onclick = () => viewFile(f.name, li);
+          li.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--muted);flex-shrink:0">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+        <span class="log-name">${esc(f.name)}</span>
+        <span class="log-size">${fmtSize(f.size)}</span>
+        <span class="log-mtime">${fmtTime(f.mtime)}</span>`;
+          list.appendChild(li);
+        }
+      } catch { list.innerHTML = '<li><div class="empty-state">Failed to load files.</div></li>'; }
+    }
+
+    async function viewFile(name, li) {
+      document.querySelectorAll('.log-list li').forEach(l => l.classList.remove('selected'));
+      li.classList.add('selected');
+      const viewer = document.getElementById('file-viewer');
+      const content = document.getElementById('file-content');
+      document.getElementById('viewer-filename').textContent = name;
+      content.textContent = 'Loading…';
+      viewer.classList.add('open');
+      try {
+        const data = await (await fetch(`/api/logs/content?file=${encodeURIComponent(name)}`)).json();
+        document.getElementById('viewer-size').textContent =
+          (data.truncated ? '⚠ Truncated — first 5 MB of ' : '') + fmtSize(data.size);
+        content.innerHTML = syntaxHighlight(data.content);
+      } catch (e) { content.textContent = 'Error: ' + e; }
+    }
+
+    function closeViewer() {
+      document.getElementById('file-viewer').classList.remove('open');
+      document.querySelectorAll('.log-list li').forEach(l => l.classList.remove('selected'));
+    }
+
+    // ── Helpers ──────────────────────────────────────────────
+    function esc(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function syntaxHighlight(str) {
+      return esc(str)
+        .replace(/&quot;([^&]+)&quot;(\s*:)/g, '<span class="jk">&quot;$1&quot;</span>$2')
+        .replace(/:\s*&quot;([^&]*)&quot;/g, ': <span class="jv">&quot;$1&quot;</span>')
+        .replace(/:\s*(-?\d+\.?\d*)/g, ': <span class="jn">$1</span>')
+        .replace(/:\s*(true|false|null)/g, ': <span class="jb">$1</span>');
+    }
+
+    function fmtSize(bytes) {
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+    }
+
+    function fmtTime(ms) {
+      return new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    // ── Init ─────────────────────────────────────────────────
+    loadDefaults();
+    const ENV_CONFIG = {
+      staging: {
+        bucketPath: 'sc-eks-pod-logs/staging',
+        needsIntegrations: true,
+      },
+      prod: {
+        bucketPath: 'sc-pm2logs-new/PROD',
+        needsIntegrations: false,
+      }
+    };
+
+    const POD_MAPPING = {
+      'order-updates': {
+        staging: 'sc-integrations-order-updates-pod',
+        prod: 'sc-integrations-order-updates'
+      },
+      'broker-api': {
+        staging: 'sc-integrations-broker-api-pod',
+        prod: 'sc-integrations-broker-api'
+      }
+    };
+
+    function generateS3Url() {
+      const env = document.getElementById('env').value;
+      const dateTime = document.getElementById('dateTime').value;
+      const dt = document.getElementById('dateTime');
+      if (dt && !dt.value) {
+        const now = new Date();
+        now.setSeconds(0, 0);
+        dt.value = now.toISOString().slice(0, 16);
+      }
+      const pod = document.getElementById('pod').value;
+
+      if (!env || !dateTime || !pod) {
+        document.getElementById('s3Url').value = '';
+        updateBadge();
+        return;
+      }
+
+      // Extract date part
+      const date = dateTime.split('T')[0];
+
+      const config = ENV_CONFIG[env];
+      const mappedPod = POD_MAPPING[pod][env];
+
+      let path = `s3://${config.bucketPath}/${date}/`;
+
+      if (config.needsIntegrations) {
+        path += `integrations/${mappedPod}/`;
+      } else {
+        path += `${mappedPod}/`;
+      }
+
+      document.getElementById('s3Url').value = path;
+      updateBadge();
+    }
+  document.addEventListener('DOMContentLoaded', () => {
+    ['env', 'dateTime', 'pod'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+
+      el.addEventListener('input', generateS3Url);
+    });
+
+    generateS3Url();
+  });
+  </script>
+</body>
+
+</html>

@@ -43,20 +43,48 @@ process.env.AWS_PROFILE = 'smallcase';
 process.env.AWS_SDK_LOAD_CONFIG = '1';
 process.env.AWS_REGION = 'ap-south-1';
 process.env.AWS_DEFAULT_REGION = 'ap-south-1';
-const DATE = '2026-03-11';
+const DATE = '2026-06-05';
+const DEFAULT_CONCURRENCY = 4;
 // Script-level defaults (can be edited directly instead of passing CLI flags)
 const DEFAULTS = {
-  // S3_URL: `s3://sc-pm2logs-new/PROD/${DATE}/sc-integrations-order-updates/`,
-  S3_URL: `s3://sc-eks-pod-logs/staging/${DATE}/integrations/sc-integrations-order-updates-pod/`,
+  // --- EC2/PM2 (legacy hosting, bucket sc-pm2logs-new, flat PROD/<date>/<service>/ layout) ---
+  // Verified live 2026-09-22: order-updates & broker-api are now EMPTY here (fully migrated to EKS below).
+  // platform-api is still DUAL-RUNNING here (actively written) alongside EKS — check both for platform-api.
+  // Remember --dir Out-logs (or Error-logs) or you'll also pull code-deploy-logs/ and script-logs/ noise.
+  // DATE below is still 2026-06-05 (pre-migration for order-updates/broker-api) so the EC2 path is the one
+  // that actually has data for it — that's how the checked-in sample log was generated. If you bump DATE to
+  // something recent, switch the active default to the EKS block below instead (order-updates/broker-api are
+  // EKS-only for recent dates — verified live 2026-09-22).
+  S3_URL: `s3://sc-pm2logs-new/PROD/${DATE}/sc-integrations-order-updates/`, //ec2, has data for DATE=2026-06-05
+  // S3_URL: `s3://sc-pm2logs-new/PROD/${DATE}/sc-integrations-broker-api/`, //ec2, has data for DATE=2026-06-05
+  // S3_URL: `s3://sc-pm2logs-new/PROD/${DATE}/sc-platform-api/`, //ec2, still live (dual-running, any date)
+  // S3_URL: `s3://sc-pm2logs-new/PROD/${DATE}/sc-integrations-jobs/`, //ec2, jobs daemon logs (not per-job-run output, see below)
+
+  // --- Kubernetes/EKS (current hosting, bucket sc-eks-pod-logs, namespaced <staging|production>/<date>/<ns>/<service>-pod/) ---
+  // Verified live 2026-09-22: order-updates & broker-api are EKS-only for RECENT dates (empty on EC2 above). platform-api also live here (dual-running).
+  // S3_URL: `s3://sc-eks-pod-logs/production/${DATE}/integrations/sc-integrations-order-updates-pod/`, //eks production, use for recent dates
+  // S3_URL: `s3://sc-eks-pod-logs/production/${DATE}/integrations/sc-integrations-broker-api-pod/`, //eks production, use for recent dates
+  // S3_URL: `s3://sc-eks-pod-logs/production/${DATE}/platform/sc-platform-api-pod/`, //eks production (current)
+  // S3_URL: `s3://sc-eks-pod-logs/staging/${DATE}/integrations/sc-integrations-order-updates-pod/`, //eks staging
+  // S3_URL: `s3://sc-eks-pod-logs/staging/${DATE}/integrations/sc-integrations-broker-api-pod/`, //eks staging
+  // S3_URL: `s3://sc-eks-pod-logs/staging/${DATE}/platform/sc-platform-api-pod/`, //eks staging
+
+  // --- sc-integrations-jobs per-run logs (DIFFERENT bucket+shape: one gzip object per job invocation, NOT date-partitioned) ---
+  // Key = sc-integrations-jobs/<jobFileName>_<bullJobId> (bullJobId often embeds an epoch-ms timestamp for repeatable jobs).
+  // No .gz extension and no gzip Content-Type/Content-Encoding header — this script's auto-gunzip detection MISSES these
+  // objects (verified live); do not point S3_URL here without also forcing gunzip, or you'll get raw binary garbage.
+  // S3_URL: `s3://sc-prod-logs/sc-integrations-jobs/`, //ec2 production (jobs per-run stdout, needs forced gunzip)
+
   OUT_DIR: './logs',
   IST: true,
-  FROM: `${DATE}T01:00:00`,
-  TO: `${DATE}T23:50:00`,
-  FILTER_TEXT: "69b18d89f9d2380dc816e548", // e.g. 'hdfcsky'
+  // FROM: `${DATE}T00:00:01`,
+  // TO: `${DATE}T24:59:59`,
+  FILTER_TEXT: "sc_rXWoyJfoH", // e.g. 'hdfcsky'
+  // FILTER_NOT_TEXT: 'dealerId', // exclude lines containing any of these (comma-separated or array)
   // FILTER_FIELD: 'broker=hdfcsky, brokerName=hdfcsky', // string, comma-separated, or array of 'k=v'
-  CONCURRENCY: 4,
+  CONCURRENCY: 120,
   SORT: 'nf', // 'nf' | 'of' (new first | old first)
-  CI: false, // case-insensitive matching for text and field,
+  CI: true, // case-insensitive matching for text and field,
   // DIR: 'Out-logs',
   PARSE_MESSAGE: true, // parse JSON strings in message/raw fields into nested objects
 };
@@ -81,12 +109,19 @@ function printHelpAndExit(code = 1) {
       '  --to <ISO|epochMs>         Filter lines whose JSON "time" <= this',
       '  --ist                      Interpret --from/--to as IST (UTC+05:30)',
       '  --filter-text <a,b>        Substring filter (comma-separated values must ALL match)',
+      '  --whole-word              Match --filter-text values as whole words instead of substrings',
+      '  --filter-not-text <a,b>    Exclude lines matching ANY of these substrings (comma-separated)',
       '  --filter-field <k=v>       Create an additional filtered copy with lines where JSON field k===v',
       '                              Supports expressions like: key1=val1 and key2=val2 or key3=val3',
       '                              (repeatable; repeats OR with expression result)',
       '  --sort <nf|of>             Optional: sort by JSON "time" (nf=new first, of=old first)',
       '  --ci                       Case-insensitive matching for --filter-text and --filter-field',
       '  --parse-message            Parse JSON strings in raw/message fields into nested objects',
+      '  --force-gunzip             Always gunzip objects regardless of key/Content-Encoding/Content-Type',
+      '                              (needed for buckets like sc-prod-logs where gzip objects carry no hint)',
+      '  --modified-after <ISO>     Only include S3 objects whose LastModified >= this (for non-date-partitioned',
+      '                              prefixes, e.g. sc-integrations-jobs per-run logs)',
+      '  --modified-before <ISO>    Only include S3 objects whose LastModified <= this',
       '  --help                     Show this help',
       '',
       'Examples:',
@@ -146,7 +181,7 @@ function parseArgs(argv) {
     prefix: '',
     outDir: undefined,
     region: undefined,
-    concurrency: 4,
+    concurrency: undefined,
     rawFields: [],
     startAfter: undefined,
     maxKeys: 1000,
@@ -154,12 +189,17 @@ function parseArgs(argv) {
     from: undefined,
     to: undefined,
     filterText: undefined,
+    wholeWord: false,
+    filterNotText: undefined,
     filterFields: [],
     filterFieldExprClauses: [],
     ist: false,
     sort: undefined,
     ci: undefined,
     parseMessage: false,
+    forceGunzip: false,
+    modifiedAfter: undefined,
+    modifiedBefore: undefined,
   };
   for (let i = 2; i < argv.length; i += 1) {
     const a = argv[i];
@@ -169,7 +209,7 @@ function parseArgs(argv) {
     else if (a === '--prefix') args.prefix = argv[++i] || '';
     else if (a === '--out') args.outDir = argv[++i];
     else if (a === '--region') args.region = argv[++i];
-    else if (a === '--concurrency') args.concurrency = Number(argv[++i] || '4');
+    else if (a === '--concurrency') args.concurrency = Number(argv[++i] || String(DEFAULT_CONCURRENCY));
     else if (a === '--raw-field') {
       const v = argv[++i] || '';
       args.rawFields = v.split(',').map((s) => s.trim()).filter(Boolean);
@@ -183,6 +223,12 @@ function parseArgs(argv) {
       if (parsed && parsed.length) {
         if (!args.filterText) args.filterText = [];
         args.filterText.push(...parsed);
+      }
+    } else if (a === '--filter-not-text') {
+      const parsed = normalizeFilterText(argv[++i]);
+      if (parsed && parsed.length) {
+        if (!args.filterNotText) args.filterNotText = [];
+        args.filterNotText.push(...parsed);
       }
     }
     else if (a === '--filter-field') {
@@ -202,12 +248,18 @@ function parseArgs(argv) {
         }
       }
     } else if (a === '--ist') args.ist = true;
+    else if (a === '--force-gunzip') args.forceGunzip = true;
+    else if (a === '--modified-after') args.modifiedAfter = argv[++i];
+    else if (a === '--modified-before') args.modifiedBefore = argv[++i];
     else if (a === '--sort') {
       const mode = String(argv[++i] || '').toLowerCase();
       if (mode === 'nf' || mode === 'of') args.sort = mode;
       else console.warn('Ignoring --sort: expected "nf" or "of"');
     } else if (a === '--ci') args.ci = true;
+    else if (a === '--whole-word') args.wholeWord = true;
     else if (a === '--parse-message') args.parseMessage = true;
+    else if (a === '--no-filter-text') args.noFilterText = true;
+    else if (a === '--no-sort') args.noSort = true;
     else {
       console.warn(`Unknown argument: ${a}`);
     }
@@ -378,6 +430,12 @@ function parseKeyValue(spec) {
   return [k, v];
 }
 
+function includesFilterTerm(haystack, needle, wholeWord) {
+  if (!wholeWord) return haystack.includes(needle);
+  const escapedNeedle = needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`\\b${escapedNeedle}\\b`).test(haystack);
+}
+
 function tryExtractRawFromJsonLine(line, rawFields) {
   try {
     const obj = JSON.parse(line);
@@ -430,11 +488,13 @@ async function writeFilteredLogsFromStreamToFile(
   outFilePath,
   shouldGunzip,
   filterTextTerms,
+  filterNotTextTerms,
   filterFieldSpecs,
   fromDate,
   toDate,
   sortMode,
   caseInsensitive,
+  wholeWord,
   filterFieldExprClauses,
   parseMessage = false,
   rawFields = [],
@@ -478,6 +538,7 @@ async function writeFilteredLogsFromStreamToFile(
       return false;
     }
     const hasTextFilter = Array.isArray(filterTextTerms) && filterTextTerms.length > 0;
+    const hasNotTextFilter = Array.isArray(filterNotTextTerms) && filterNotTextTerms.length > 0;
     rl.on('line', (line) => {
       // Time filter using obj.time (UTC). If from/to are not provided, skip time check.
       const includeByTime = true;
@@ -511,7 +572,7 @@ async function writeFilteredLogsFromStreamToFile(
           const needle = caseInsensitive ? rawTerm.toLowerCase() : rawTerm;
           if (!needle) continue;
           requiredTerms += 1;
-          if (!haystack.includes(needle)) {
+          if (!includesFilterTerm(haystack, needle, wholeWord)) {
             textMatch = false;
             break;
           }
@@ -558,6 +619,13 @@ async function writeFilteredLogsFromStreamToFile(
         }
       }
       const includeByContent = hasContentFilter ? (textMatch || fieldMatch) : true;
+      if (hasNotTextFilter) {
+        const haystackEx = caseInsensitive ? String(line).toLowerCase() : String(line);
+        for (const term of filterNotTextTerms) {
+          const needle = caseInsensitive ? String(term).toLowerCase() : String(term);
+          if (needle && haystackEx.includes(needle)) return;
+        }
+      }
       if (!(includeByTime && includeByContent)) return;
 
       // Buffer or write
@@ -642,15 +710,18 @@ async function processObject(
   aggregatedOutPath,
   rawFields,
   filterText,
+  filterNotText,
   filterFieldSpecs,
   fromDate,
   toDate,
   sortMode,
   caseInsensitive,
+  wholeWord,
   filterFieldExprClauses,
   parseMessage,
   fileMode,
-  externalBuffer = null
+  externalBuffer = null,
+  forceGunzip = false
 ) {
   ensureDir(path.dirname(aggregatedOutPath));
   console.log(`Processing s3://${bucket}/${key} -> ${aggregatedOutPath}`);
@@ -658,6 +729,7 @@ async function processObject(
   const resp = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
   const bodyStream = resp.Body;
   const shouldGunzip =
+    forceGunzip ||
     looksLikeGzipKey(key) ||
     (resp.ContentEncoding && String(resp.ContentEncoding).toLowerCase().includes('gzip')) ||
     (resp.ContentType && String(resp.ContentType).toLowerCase().includes('gzip'));
@@ -668,11 +740,13 @@ async function processObject(
     aggregatedOutPath,
     shouldGunzip,
     filterText,
+    filterNotText,
     filterFieldSpecs,
     fromDate,
     toDate,
     sortMode,
     caseInsensitive,
+    wholeWord,
     filterFieldExprClauses,
     parseMessage,
     rawFields,
@@ -720,14 +794,21 @@ async function run() {
   const args = parseArgs(process.argv);
 
   // Apply script-level defaults if not provided via CLI
-  if (!args.s3Url && DEFAULTS.S3_URL) args.s3Url = DEFAULTS.S3_URL;
+  // Only fall back to the hardcoded default when the user gave neither --s3-url nor --bucket —
+  // an explicit --bucket (with or without --prefix) must win over DEFAULTS.S3_URL, same as every
+  // other overridable default below.
+  if (!args.s3Url && !args.bucket && DEFAULTS.S3_URL) args.s3Url = DEFAULTS.S3_URL;
   if (!args.outDir && DEFAULTS.OUT_DIR) args.outDir = DEFAULTS.OUT_DIR;
   if (args.ist === false && DEFAULTS.IST) args.ist = true;
   if (!args.from && DEFAULTS.FROM) args.from = DEFAULTS.FROM;
   if (!args.to && DEFAULTS.TO) args.to = DEFAULTS.TO;
-  if ((!Array.isArray(args.filterText) || args.filterText.length === 0) && DEFAULTS.FILTER_TEXT) {
+  if (!args.noFilterText && (!Array.isArray(args.filterText) || args.filterText.length === 0) && DEFAULTS.FILTER_TEXT) {
     const defaults = normalizeFilterText(DEFAULTS.FILTER_TEXT);
     if (defaults) args.filterText = defaults;
+  }
+  if ((!Array.isArray(args.filterNotText) || args.filterNotText.length === 0) && DEFAULTS.FILTER_NOT_TEXT) {
+    const defaults = normalizeFilterText(DEFAULTS.FILTER_NOT_TEXT);
+    if (defaults) args.filterNotText = defaults;
   }
   if (args.filterFields.length === 0 && DEFAULTS.FILTER_FIELD) {
     const src = DEFAULTS.FILTER_FIELD;
@@ -745,7 +826,8 @@ async function run() {
     }
   }
   if (!args.concurrency && DEFAULTS.CONCURRENCY) args.concurrency = DEFAULTS.CONCURRENCY;
-  if (!args.sort && DEFAULTS.SORT && (DEFAULTS.SORT === 'nf' || DEFAULTS.SORT === 'of')) {
+  if (!args.concurrency) args.concurrency = DEFAULT_CONCURRENCY;
+  if (!args.noSort && !args.sort && DEFAULTS.SORT && (DEFAULTS.SORT === 'nf' || DEFAULTS.SORT === 'of')) {
     args.sort = DEFAULTS.SORT;
   }
   if (args.ci === undefined && typeof DEFAULTS.CI === 'boolean') {
@@ -801,15 +883,23 @@ async function run() {
     console.log('No objects found.');
     return;
   }
-  // Apply directory filter only at object level. Time filtering is done per line using JSON "time".
+  // Apply directory + LastModified filters at object level. Time filtering by JSON "time" is done per line.
   const fromDate = parseDateWithIST(args.from, args.ist);
   const toDate = parseDateWithIST(args.to, args.ist);
+  const modifiedAfterDate = parseDateWithIST(args.modifiedAfter, args.ist);
+  const modifiedBeforeDate = parseDateWithIST(args.modifiedBefore, args.ist);
   const filtered = allItems.filter((it) => {
     // Directory filter: match first segment under prefix
     if (args.dir) {
       const rel = it.key.startsWith(args.prefix) ? it.key.slice(args.prefix.length) : it.key;
       const firstSeg = rel.split('/')[0] || '';
       if (firstSeg !== args.dir) return false;
+    }
+    // LastModified filter: for non-date-partitioned prefixes (e.g. sc-integrations-jobs per-run logs)
+    // where the S3 key itself carries no reliable date segment.
+    if ((modifiedAfterDate || modifiedBeforeDate) && it.lastModified) {
+      if (modifiedAfterDate && it.lastModified < modifiedAfterDate) return false;
+      if (modifiedBeforeDate && it.lastModified > modifiedBeforeDate) return false;
     }
     return true;
   });
@@ -843,15 +933,18 @@ async function run() {
           aggregatedOutPath,
           args.rawFields,
           args.filterText,
+          args.filterNotText,
           args.filterFields,
           fromDate,
           toDate,
           args.sort,
           !!args.ci,
+          args.wholeWord,
           args.filterFieldExprClauses,
           !!args.parseMessage,
           fileMode,
-          globalBuffer
+          globalBuffer,
+          !!args.forceGunzip
         )
           .catch((err) => {
             failed += 1;
@@ -915,6 +1008,5 @@ run().catch((err) => {
   console.error(err);
   process.exit(1);
 });
-
 
 
