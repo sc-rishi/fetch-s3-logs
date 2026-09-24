@@ -31,10 +31,21 @@
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
-const { pipeline } = require('stream');
+const { pipeline, Readable } = require('stream');
 const { promisify } = require('util');
 const zlib = require('zlib');
-const { S3Client, ListObjectsV2Command, GetObjectCommand, HeadObjectCommand, S3 } = require('@aws-sdk/client-s3');
+const { S3Client, ListObjectsV2Command, GetObjectCommand, HeadObjectCommand, SelectObjectContentCommand } = require('@aws-sdk/client-s3');
+const { forEachSelectRecord } = require('./s3-search-utils');
+const {
+  DEFAULT_SEARCH_DAYS,
+  RAW_LINE_CSV,
+  ValidationError,
+  dateRange,
+  escapeLikeLiteral,
+  formatDate,
+  parseIsoDate,
+  sqlString,
+} = require('./search-s3-logs');
 
 const pipe = promisify(pipeline);
 
@@ -44,6 +55,12 @@ process.env.AWS_SDK_LOAD_CONFIG = '1';
 process.env.AWS_REGION = 'ap-south-1';
 process.env.AWS_DEFAULT_REGION = 'ap-south-1';
 const DATE = '2026-06-05';
+// Set BOTH of these (e.g. '2026-06-01' / '2026-06-24') to scan a day range by default with no CLI
+// args — the script then substitutes each day into a literal "{date}" placeholder in S3_URL below
+// (swap the active S3_URL's `${DATE}` for `{date}` when using this). Leave both empty ('') to keep
+// today's single fixed-date behavior driven by DATE above. Overridden by --date/--date-from/--date-to.
+const DATE_FROM = '';
+const DATE_TO = '';
 const DEFAULT_CONCURRENCY = 4;
 // Script-level defaults (can be edited directly instead of passing CLI flags)
 const DEFAULTS = {
@@ -56,6 +73,7 @@ const DEFAULTS = {
   // something recent, switch the active default to the EKS block below instead (order-updates/broker-api are
   // EKS-only for recent dates — verified live 2026-09-22).
   S3_URL: `s3://sc-pm2logs-new/PROD/${DATE}/sc-integrations-order-updates/`, //ec2, has data for DATE=2026-06-05
+  // S3_URL: 's3://sc-pm2logs-new/PROD/{date}/sc-integrations-order-updates/', //ec2, use with DATE_FROM/DATE_TO set above for a day-range scan
   // S3_URL: `s3://sc-pm2logs-new/PROD/${DATE}/sc-integrations-broker-api/`, //ec2, has data for DATE=2026-06-05
   // S3_URL: `s3://sc-pm2logs-new/PROD/${DATE}/sc-platform-api/`, //ec2, still live (dual-running, any date)
   // S3_URL: `s3://sc-pm2logs-new/PROD/${DATE}/sc-integrations-jobs/`, //ec2, jobs daemon logs (not per-job-run output, see below)
@@ -77,6 +95,8 @@ const DEFAULTS = {
 
   OUT_DIR: './logs',
   IST: true,
+  DATE_FROM: DATE_FROM || undefined,
+  DATE_TO: DATE_TO || undefined,
   // FROM: `${DATE}T00:00:01`,
   // TO: `${DATE}T24:59:59`,
   FILTER_TEXT: "sc_rXWoyJfoH", // e.g. 'hdfcsky'
@@ -105,6 +125,11 @@ function printHelpAndExit(code = 1) {
       '  --start-after <key>        Start after this key when listing (optional)',
       '  --max-keys <n>             Max keys per list page (default: 1000)',
       '  --dir <name>               Only include this first-level subdirectory under the prefix (default: Out-logs)',
+      '  --date <YYYY-MM-DD>        Substitute into a {date} placeholder in --s3-url/--bucket/--prefix (single day)',
+      '  --date-from <YYYY-MM-DD>   Start of a date range to substitute into {date} (pair with --date-to, max 30 days)',
+      '  --date-to <YYYY-MM-DD>     End of a date range to substitute into {date} (pair with --date-from)',
+      '                              One run per day; output goes to <out>/<date>/all-logs.filtered.log.',
+      '                              Not the same as --from/--to below, which filter individual log lines.',
       '  --from <ISO|epochMs>       Filter lines whose JSON "time" >= this',
       '  --to <ISO|epochMs>         Filter lines whose JSON "time" <= this',
       '  --ist                      Interpret --from/--to as IST (UTC+05:30)',
@@ -132,11 +157,16 @@ function printHelpAndExit(code = 1) {
       '  node scripts/fetch-s3-logs.js --s3-url s3://bucket/prefix/ --filter-text hdfcsky --out ./raw',
       '  node scripts/fetch-s3-logs.js --s3-url s3://bucket/prefix/ --filter-field broker=hdfcsky --out ./raw',
       '  node scripts/fetch-s3-logs.js --s3-url s3://sc-pm2logs-new/PROD/2025-11-20/sc-integrations-broker-api/ --out ./raw-logs --filter-text hdfcsky',
+      '  node scripts/fetch-s3-logs.js --s3-url "s3://sc-pm2logs-new/PROD/{date}/sc-integrations-order-updates/" --dir Out-logs --date-from 2026-06-01 --date-to 2026-06-24 --filter-text sc_rXWoyJfoH --out ./logs',
       '',
       'Notes:',
       '  - This script writes ONLY a filtered output file per S3 object.',
       '  - If no filters are provided, all lines are included into the filtered file.',
       '  - JSON lines are pretty-printed. Non-JSON lines are wrapped as {"raw": "..."} and pretty-printed.',
+      '  - When --filter-text is given, each object is first queried server-side with S3 Select (only',
+      '    matching lines are transferred, not the whole object) and every other filter/sort still runs',
+      '    locally on that result. Falls back to a full download only if Select fails or no --filter-text',
+      '    was given at all.',
     ].join('\n')
   );
   process.exit(code);
@@ -186,6 +216,9 @@ function parseArgs(argv) {
     startAfter: undefined,
     maxKeys: 1000,
     dir: undefined,
+    date: undefined,
+    dateFrom: undefined,
+    dateTo: undefined,
     from: undefined,
     to: undefined,
     filterText: undefined,
@@ -216,6 +249,9 @@ function parseArgs(argv) {
     } else if (a === '--start-after') args.startAfter = argv[++i];
     else if (a === '--max-keys') args.maxKeys = Number(argv[++i] || '1000');
     else if (a === '--dir') args.dir = argv[++i];
+    else if (a === '--date') args.date = argv[++i];
+    else if (a === '--date-from') args.dateFrom = argv[++i];
+    else if (a === '--date-to') args.dateTo = argv[++i];
     else if (a === '--from') args.from = argv[++i];
     else if (a === '--to') args.to = argv[++i];
     else if (a === '--filter-text') {
@@ -703,6 +739,51 @@ async function writeFilteredLogsFromStreamToFile(
   });
 }
 
+function stringToReadable(text) {
+  const stream = new Readable({ read() {} });
+  stream.push(text);
+  stream.push(null);
+  return stream;
+}
+
+// AND-of-LIKE expression across all --filter-text terms, same substring semantics the local text
+// filter already enforces. Always case-insensitive (a safe superset): the local filter re-applies
+// --ci/whole-word exactly afterward, so a broader Select match here can never drop a true match.
+function buildTextSelectExpression(filterTextTerms) {
+  const clauses = (filterTextTerms || [])
+    .map((term) => String(term).trim())
+    .filter(Boolean)
+    .map((term) => `LOWER(s._1) LIKE ${sqlString(`%${escapeLikeLiteral(term)}%`)} ESCAPE '!'`);
+  return clauses.length ? `SELECT * FROM S3Object s WHERE ${clauses.join(' AND ')}` : null;
+}
+
+// Queries the object server-side via S3 Select instead of downloading it whole. Returns the
+// matching lines (possibly empty — a real "no match"), or null if Select can't be used/trusted
+// for this object, meaning the caller should fall back to a full download.
+async function trySelectMatchingLines(s3, bucket, key, filterTextTerms, isGzip) {
+  const expression = buildTextSelectExpression(filterTextTerms);
+  if (!expression) return null;
+  const response = await s3.send(new SelectObjectContentCommand({
+    Bucket: bucket,
+    Key: key,
+    Expression: expression,
+    ExpressionType: 'SQL',
+    InputSerialization: { CompressionType: isGzip ? 'GZIP' : 'NONE', CSV: RAW_LINE_CSV },
+    OutputSerialization: { JSON: { RecordDelimiter: '\n' } },
+  }));
+  const lines = [];
+  let tabCollision = false;
+  const { ended } = await forEachSelectRecord(response.Payload, (record) => {
+    if (record._2 !== undefined && String(record._2).length > 0) {
+      tabCollision = true; // the raw line itself contained a real tab -> CSV hack split it; distrust this object
+      return;
+    }
+    if (typeof record._1 === 'string') lines.push(record._1);
+  });
+  if (!ended || tabCollision) return null;
+  return lines;
+}
+
 async function processObject(
   s3,
   bucket,
@@ -725,6 +806,40 @@ async function processObject(
 ) {
   ensureDir(path.dirname(aggregatedOutPath));
   console.log(`Processing s3://${bucket}/${key} -> ${aggregatedOutPath}`);
+
+  if (Array.isArray(filterText) && filterText.length > 0) {
+    try {
+      const isGzip = forceGunzip || looksLikeGzipKey(key);
+      const selectedLines = await trySelectMatchingLines(s3, bucket, key, filterText, isGzip);
+      if (selectedLines) {
+        console.log(`  Queried via S3 Select: ${selectedLines.length} candidate line(s) (no full download).`);
+        const matched = await writeFilteredLogsFromStreamToFile(
+          stringToReadable(selectedLines.length ? `${selectedLines.join('\n')}\n` : ''),
+          aggregatedOutPath,
+          false,
+          filterText,
+          filterNotText,
+          filterFieldSpecs,
+          fromDate,
+          toDate,
+          sortMode,
+          caseInsensitive,
+          wholeWord,
+          filterFieldExprClauses,
+          parseMessage,
+          rawFields,
+          fileMode,
+          externalBuffer
+        );
+        if (!matched) {
+          console.log(`No matching lines in s3://${bucket}/${key}; skipping file creation.`);
+        }
+        return;
+      }
+    } catch (err) {
+      console.warn(`  S3 Select query failed for s3://${bucket}/${key} (${err.message || err}); falling back to full download.`);
+    }
+  }
 
   const resp = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
   const bodyStream = resp.Body;
@@ -802,6 +917,10 @@ async function run() {
   if (args.ist === false && DEFAULTS.IST) args.ist = true;
   if (!args.from && DEFAULTS.FROM) args.from = DEFAULTS.FROM;
   if (!args.to && DEFAULTS.TO) args.to = DEFAULTS.TO;
+  if (!args.date && !args.dateFrom && !args.dateTo && DEFAULTS.DATE_FROM && DEFAULTS.DATE_TO) {
+    args.dateFrom = DEFAULTS.DATE_FROM;
+    args.dateTo = DEFAULTS.DATE_TO;
+  }
   if (!args.noFilterText && (!Array.isArray(args.filterText) || args.filterText.length === 0) && DEFAULTS.FILTER_TEXT) {
     const defaults = normalizeFilterText(DEFAULTS.FILTER_TEXT);
     if (defaults) args.filterText = defaults;
@@ -846,6 +965,74 @@ async function run() {
     process.exit(1);
   }
 
+  let dateList;
+  try {
+    dateList = resolveDateList(args);
+  } catch (err) {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
+  }
+  const placeholderSource = `${args.s3Url || ''} ${args.bucket || ''} ${args.prefix || ''}`;
+  const hasPlaceholder = placeholderSource.includes('{date}');
+  if (dateList && !hasPlaceholder) {
+    console.error('Error: --date/--date-from/--date-to given but --s3-url/--bucket/--prefix has no {date} placeholder to substitute.');
+    process.exit(1);
+  }
+  if (!dateList && hasPlaceholder) {
+    console.error('Error: --s3-url/--bucket/--prefix contains a {date} placeholder; pass --date or --date-from/--date-to.');
+    process.exit(1);
+  }
+
+  const s3 = new S3Client({
+    region: 'ap-south-1',
+  });
+
+  const dates = dateList || [null];
+  for (const date of dates) {
+    if (date) console.log(`\n=== ${date} ===`);
+    await runForScope(s3, buildScopedArgs(args, date));
+  }
+}
+
+// Resolves the day(s) to scan: --date wins as a single day, --date-from/--date-to as an inclusive
+// range (max DEFAULT_SEARCH_DAYS, same cap fetch-by-identifier.js uses), or null if neither was
+// given (today's single-static-prefix behavior, unchanged). Throws ValidationError on bad input;
+// callers decide how to report it (matches search-s3-logs.js's buildDateList convention).
+function resolveDateList(args) {
+  if (args.date && (args.dateFrom || args.dateTo)) {
+    throw new ValidationError('Use either --date or --date-from/--date-to, not both.');
+  }
+  if (args.date) return [formatDate(parseIsoDate(args.date))];
+  if (args.dateFrom || args.dateTo) {
+    if (!args.dateFrom || !args.dateTo) {
+      throw new ValidationError('--date-from and --date-to must be supplied together.');
+    }
+    const dates = dateRange(args.dateFrom, args.dateTo);
+    if (dates.length > DEFAULT_SEARCH_DAYS) {
+      throw new ValidationError(`--date-from/--date-to may cover at most ${DEFAULT_SEARCH_DAYS} days.`);
+    }
+    return dates;
+  }
+  return null;
+}
+
+function substitutePlaceholder(value, date) {
+  return typeof value === 'string' ? value.split('{date}').join(date) : value;
+}
+
+// date === null -> no date scoping, args pass through unchanged (today's behavior).
+function buildScopedArgs(args, date) {
+  if (!date) return args;
+  return {
+    ...args,
+    s3Url: substitutePlaceholder(args.s3Url, date),
+    bucket: substitutePlaceholder(args.bucket, date),
+    prefix: substitutePlaceholder(args.prefix, date),
+    outDir: path.join(args.outDir, date),
+  };
+}
+
+async function runForScope(s3, args) {
   // Resolve bucket/prefix from --s3-url if provided
   if (args.s3Url) {
     const parsed = parseS3Url(args.s3Url);
@@ -864,10 +1051,6 @@ async function run() {
   } catch (err) {
     console.warn(`Unable to reset existing aggregated log file: ${err.message || err}`);
   }
-
-  const s3 = new S3Client({
-    region: 'ap-south-1',
-  });
 
   console.log(
     `Listing objects in bucket=${args.bucket} prefix=${args.prefix ? args.prefix : '(none)'} ...`
@@ -1004,9 +1187,20 @@ async function run() {
   }
 }
 
-run().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+if (require.main === module) {
+  run().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  buildScopedArgs,
+  buildTextSelectExpression,
+  parseArgs,
+  resolveDateList,
+  substitutePlaceholder,
+  trySelectMatchingLines,
+};
 
 

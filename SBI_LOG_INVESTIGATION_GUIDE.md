@@ -835,7 +835,8 @@ This requires `s3:ListBucket` and `s3:GetObject` permission for both recon prefi
 ### 3.5 `fetch-s3-logs.js` mechanics worth knowing before using any of the above
 
 - `--s3-url` (or `--bucket`/`--prefix`) on the CLI **always overrides `DEFAULTS`** in the script — always pass it explicitly. The script's hardcoded `DEFAULTS.DATE` and `DEFAULTS.FILTER_TEXT` are development scratch values (currently a specific historical date and a specific tag) that silently apply if you forget to override them (or pass `--no-filter-text` to explicitly suppress the stale tag filter).
-- One invocation covers **one date only** for surfaces 1/2 (the S3 prefix bakes in a single `{YYYY-MM-DD}` segment) — a date range needs one invocation per day, looped.
+- A single invocation can now scan **one date, or a date range**, by putting a literal `{date}` placeholder in `--s3-url`/`--bucket`/`--prefix` and passing `--date <YYYY-MM-DD>` (one day) or `--date-from <YYYY-MM-DD> --date-to <YYYY-MM-DD>` (inclusive range, max 30 days — same cap as `fetch-by-identifier.js`). Output is nested per day: `<out>/<date>/all-logs.filtered.log`. Omitting all three keeps the original single-static-prefix behavior (whatever date is already baked into the prefix). The top-of-file `DATE_FROM`/`DATE_TO` constants work the same way as `DATE` — set both to skip passing the flags at all. Do not confuse this with the pre-existing `--from`/`--to` flags, which filter individual log lines by full timestamp, not which day-partition to scan.
+- **`--filter-text` is queried server-side via S3 Select first** (an AND-of-substring `LIKE` match, same technique `search-s3-logs.js`/`search-s3-recon.js` use) — only matching lines are transferred, not the whole object; every other filter (field AND/OR, time-range, sort, whole-word, parse-message) still runs locally afterward on that smaller result, so nothing lost precision-wise. Falls back to a full `GetObject` download automatically if Select fails for an object, or unconditionally when no `--filter-text` is given (nothing to push down). This is what makes a wide `--date-from`/`--date-to` scan practical — a 24-day scan no longer means 24 full-object downloads per key.
 - `--region` is parsed but ignored; region (`ap-south-1`) and `AWS_PROFILE` (`smallcase`) are hardcoded in the script.
 - Failed S3 GETs are not retried — a throttled/missing key logs `Failed for key=<key>: <err.message>` and the run still exits 0. A suspiciously incomplete result may be a silent partial failure, not "nothing there."
 - Output is one aggregated file, `<outDir>/all-logs.filtered.log`, written as pretty-printed JSON objects each followed by a trailing comma, **no enclosing `[...]`** — not valid JSON as a whole file (strip trailing commas / wrap in brackets, or parse object-by-object). Non-JSON lines are wrapped as `{"raw": "<line>"}`.
@@ -852,9 +853,9 @@ When a report needs a reusable broker-call artifact for each tag:
      --dir Out-logs --out ./logs/<tag>/order-updates \
      --filter-text <tag> --ci --sort of
    ```
-2. Write one valid, standalone JSON object named exactly `<tag>.json` directly into `logs/findings/logs/` (flat, no per-date subfolder — see §3.5.2). Keep only the relevant request and the target order leg from the broker response: `observedAt`, `trace.id`, `transaction.id`, request method/URL/tag filter, HTTP/response code, raw `orderStatus`, exchange order number, requested/remaining/traded quantities.
+2. Write one valid, standalone JSON object named exactly `<tag>.json` directly into `logs/findings/broker-logs/` (flat, no per-date subfolder — see §3.5.2). Keep only the relevant request and the target order leg from the broker response: `observedAt`, `trace.id`, `transaction.id`, request method/URL/tag filter, HTTP/response code, raw `orderStatus`, exchange order number, requested/remaining/traded quantities.
 3. Do not copy credentials, authorization headers, account numbers, or unrelated legs from the full log. The OU log schema has no log-level `_id`; retain `trace.id` and `transaction.id` as the identifiers for retrieving the complete original event later.
-4. Link the tag-named JSON file beside that tag's findings in the investigation report, as a relative path (`./logs/<tag>.json` — see §3.5.2). Keep the large aggregated OU log as supporting evidence under the raw `logs/<date-folder>/` tree, not as the per-tag artifact.
+4. Link the tag-named JSON file beside that tag's findings in the investigation report, as a relative path (`./broker-logs/<tag>.json` — see §3.5.2). Keep the large aggregated OU log as supporting evidence under the raw `logs/<date-folder>/` tree, not as the per-tag artifact.
 
 The same process applies to EKS order-updates paths; only the `--s3-url` changes. For recon evidence, keep the per-tag JSON artifact separate from the raw CSV downloads under `sbi_recon/<date>/` and `mtf_recon/<date>/`.
 
@@ -866,15 +867,15 @@ All investigation reports and their per-tag artifacts live together under `logs/
 logs/
   findings/
     <broker>_order_investigation_<date-or-range>.md   # the report(s)
-    logs/
+    broker-logs/
       <tag>.json                                       # flat, one per tag, from §3.5.1
   <date-folder>/                                        # raw fetch-s3-logs.js output, unchanged
     order-updates/, recon-sbi/, recon-mtf/, ...
 ```
 
 - **Report naming:** `<broker>_order_investigation_<YYYY-MM-DD>.md` for a single-date investigation, or `<broker>_order_investigation_<YYYY-MM-DD>_to_<YYYY-MM-DD>.md` for a report spanning multiple investigation dates (e.g. `sbi_order_investigation_2026-06-01_to_2026-06-24.md`). Don't lead the filename with a single tag once the report covers more than one tag — name it by broker + date scope instead.
-- **Per-tag artifact location:** every `<tag>.json` built per §3.5.1 goes in `logs/findings/logs/`, flat — not nested under a date or the raw per-date folder tree.
-- **Linking from the report:** since the report lives in `logs/findings/` and the artifacts are its sibling `logs/` folder, link them as `./logs/<tag>.json` — not an absolute machine path, and not `./findings/logs/...` (that would be correct only if the report stayed one level up, outside `findings/`).
+- **Per-tag artifact location:** every `<tag>.json` built per §3.5.1 goes in `logs/findings/broker-logs/`, flat — not nested under a date or the raw per-date folder tree.
+- **Linking from the report:** since the report lives in `logs/findings/` and the artifacts are its sibling `broker-logs/` folder, link them as `./broker-logs/<tag>.json` — not an absolute machine path.
 - **Everything else stays put:** the aggregated per-date evidence (`order-updates/all-logs.filtered.log`, recon CSV dumps, `jobs-recon/`, `redash-order.json`, etc.) is not moved into `findings/` — link it from the report using its existing path under `logs/<date-folder>/...`.
 
 ---
@@ -922,16 +923,16 @@ for BASE in \
 done
 ```
 
-**(d) Everything for a given `batchId` across a date range** (`fetch-s3-logs.js` has no native multi-date range — loop):
+**(d) Everything for a given `batchId` across a date range** (one invocation, `{date}` placeholder + `--date-from`/`--date-to` — see §3.5):
 ```bash
-for d in 2026-06-10 2026-06-11 2026-06-12; do
-  node fetch-s3-logs.js \
-    --s3-url s3://sc-eks-pod-logs/production/$d/integrations/sc-integrations-order-updates-pod/ \
-    --out ./logs/batch-64f1a2b3c4d5e6f7a8b9c0d1/$d \
-    --filter-field "batchId=64f1a2b3c4d5e6f7a8b9c0d1" --ci
-done
+node fetch-s3-logs.js \
+  --s3-url "s3://sc-eks-pod-logs/production/{date}/integrations/sc-integrations-order-updates-pod/" \
+  --date-from 2026-06-10 --date-to 2026-06-12 \
+  --out ./logs/batch-64f1a2b3c4d5e6f7a8b9c0d1 \
+  --filter-field "batchId=64f1a2b3c4d5e6f7a8b9c0d1" --ci
 ```
-(`batchId` is a stringified Mongo `ObjectId`; its first 4 bytes are a Unix timestamp — `parseInt(batchId.slice(0,8),16)*1000` recovers an approximate creation date if narrowing the loop range without Mongo access.)
+Writes `./logs/batch-64f1a2b3c4d5e6f7a8b9c0d1/<date>/all-logs.filtered.log` per day. Note `--filter-field` (unlike `--filter-text`) is not pushed into S3 Select, so this still fully downloads each date's objects — it just removes the need for an external shell loop. A manual per-day loop (each with its own `--s3-url` and `--out`) still works identically if you prefer it.
+(`batchId` is a stringified Mongo `ObjectId`; its first 4 bytes are a Unix timestamp — `parseInt(batchId.slice(0,8),16)*1000` recovers an approximate creation date if narrowing the range without Mongo access.)
 
 **(e) SBI recon job output for a given month — two distinct things, both needed:**
 ```bash

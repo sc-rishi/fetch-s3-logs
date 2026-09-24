@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { pipeline } = require('stream/promises');
+const { StringDecoder } = require('string_decoder');
 const { GetObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 
 async function listObjects(s3, { bucket, prefix, filter = () => true }) {
@@ -85,6 +86,33 @@ async function readSelectPayload(payload) {
   return { output, stats, ended };
 }
 
+// Streams an S3 Select JSON-record payload, decoding across chunk boundaries (a record can split
+// mid-multibyte-character between Payload events), and calls onRecord(parsedRecord) for each
+// complete record. Returns { ended, stats } so the caller can detect a truncated/incomplete response.
+async function forEachSelectRecord(payload, onRecord) {
+  const decoder = new StringDecoder('utf8');
+  let pending = '';
+  let ended = false;
+  let stats = null;
+  for await (const event of payload || []) {
+    if (event.Records?.Payload) {
+      pending += decoder.write(Buffer.from(event.Records.Payload));
+      let newline = pending.indexOf('\n');
+      while (newline !== -1) {
+        const recordText = pending.slice(0, newline);
+        pending = pending.slice(newline + 1);
+        if (recordText.trim()) onRecord(JSON.parse(recordText));
+        newline = pending.indexOf('\n');
+      }
+    }
+    if (event.Stats?.Details) stats = event.Stats.Details;
+    if (event.End) ended = true;
+  }
+  pending += decoder.end();
+  if (pending.trim()) onRecord(JSON.parse(pending));
+  return { ended, stats };
+}
+
 async function downloadObject(s3, { bucket, key, outputPath }) {
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   const response = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
@@ -99,6 +127,7 @@ function writeJson(filePath, value) {
 module.exports = {
   downloadObject,
   forEachConcurrent,
+  forEachSelectRecord,
   listCommonPrefixes,
   listObjects,
   mapConcurrent,
