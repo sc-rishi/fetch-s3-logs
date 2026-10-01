@@ -6,13 +6,9 @@ const { pipeline, Transform } = require('stream');
 const { promisify } = require('util');
 const zlib = require('zlib');
 const { S3Client, ListObjectsV2Command, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { hashRef } = require('./safe-evidence');
 
 const pipe = promisify(pipeline);
-
-process.env.AWS_PROFILE = 'smallcase';
-process.env.AWS_SDK_LOAD_CONFIG = '1';
-process.env.AWS_REGION = 'ap-south-1';
-process.env.AWS_DEFAULT_REGION = 'ap-south-1';
 
 const JOB_CONFIG = {
   S3_URL: 's3://sc-pm2logs-new/PROD/2025-11-21/sc-integrations-broker-api/',
@@ -38,7 +34,7 @@ function parseS3Url(url) {
 }
 
 function ensureDir(dirPath) {
-  fs.mkdirSync(dirPath, { recursive: true });
+  fs.mkdirSync(dirPath, { recursive: true, mode: 0o700 });
 }
 
 function ensureLogExtension(filePath) {
@@ -47,14 +43,8 @@ function ensureLogExtension(filePath) {
   return `${filePath}.log`;
 }
 
-function computeDownloadPath(outDir, key, isGzip) {
-  const targetPath = path.join(outDir, key);
-  const dirName = path.dirname(targetPath);
-  ensureDir(dirName);
-  if (isGzip && targetPath.endsWith('.gz')) {
-    return ensureLogExtension(targetPath.slice(0, -3));
-  }
-  return ensureLogExtension(targetPath);
+function computeDownloadPath(outDir, key) {
+  return ensureLogExtension(path.join(outDir, hashRef(key)));
 }
 
 function looksLikeGzipKey(key) {
@@ -122,6 +112,7 @@ async function listAllObjects({ s3, bucket, prefix, startAfter, maxKeys }) {
     }
     if (!resp.IsTruncated) break;
     continuationToken = resp.NextContinuationToken;
+    if (!continuationToken) throw new Error('Incomplete S3 listing.');
     isFirst = false;
   }
   return items;
@@ -134,12 +125,12 @@ async function downloadAndMaybeGunzip({ s3, bucket, key, outDir, filter }) {
     looksLikeGzipKey(key) ||
     (resp.ContentEncoding && String(resp.ContentEncoding).toLowerCase().includes('gzip')) ||
     (resp.ContentType && String(resp.ContentType).toLowerCase().includes('gzip'));
-  const outPath = computeDownloadPath(outDir, key, shouldGunzip);
-  const writeStream = fs.createWriteStream(outPath, { flags: 'w' });
+  const outPath = computeDownloadPath(outDir, key);
+  const writeStream = fs.createWriteStream(outPath, { flags: 'wx', mode: 0o600 });
   const beautifyStream = createBeautifyTransform(filter);
   const source = shouldGunzip ? bodyStream.pipe(zlib.createGunzip()) : bodyStream;
   await pipe(source, beautifyStream, writeStream);
-  console.log(`Fetched s3://${bucket}/${key} -> ${outPath}`);
+  console.log('Fetched one S3 object into the private output directory.');
 }
 
 async function run() {
@@ -165,10 +156,13 @@ async function run() {
 
   const resolvedOutDir = path.isAbsolute(config.OUT_DIR) ? config.OUT_DIR : path.resolve(__dirname, config.OUT_DIR);
   config.OUT_DIR = resolvedOutDir;
+  if (fs.existsSync(config.OUT_DIR) && fs.readdirSync(config.OUT_DIR).length) {
+    throw new Error('Output directory must be empty.');
+  }
   ensureDir(config.OUT_DIR);
 
-  const s3 = new S3Client({ region: 'ap-south-1' });
-  console.log(`Listing objects in bucket=${config.bucket} prefix=${config.prefix || '(none)'} ...`);
+  const s3 = new S3Client({});
+  console.log('Listing selected S3 prefix.');
   const allItems = await listAllObjects({
     s3,
     bucket: config.bucket,
@@ -192,7 +186,7 @@ async function run() {
     return;
   }
 
-  console.log(`Found ${filtered.length} object(s). Downloading into ${config.OUT_DIR} with concurrency=${config.CONCURRENCY} ...`);
+  console.log(`Found ${filtered.length} object(s). Downloading with concurrency=${config.CONCURRENCY} ...`);
   let inFlight = 0;
   let idx = 0;
   let failed = 0;
@@ -208,9 +202,9 @@ async function run() {
           outDir: config.OUT_DIR,
           filter: config.FILTER,
         })
-          .catch((err) => {
+          .catch(() => {
             failed += 1;
-            console.error(`Failed for key=${key}:`, err && err.message ? err.message : err);
+            console.error('S3 object fetch failed; source details withheld.');
           })
           .finally(() => {
             inFlight -= 1;
@@ -224,13 +218,13 @@ async function run() {
 
   if (failed > 0) {
     console.log(`Completed with ${failed} failure(s).`);
+    process.exitCode = 2;
   } else {
     console.log('Completed successfully.');
   }
 }
 
 run().catch((err) => {
-  console.error(err);
+  console.error(err && err.message === 'Output directory must be empty.' ? err.message : 'Log fetch failed.');
   process.exit(1);
 });
-

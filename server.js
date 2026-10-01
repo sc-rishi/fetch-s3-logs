@@ -10,19 +10,15 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Request logger middleware
-app.use((req, _res, next) => {
-  const { method, path: p, query, body } = req;
-  const args = {};
-  if (Object.keys(query).length) args.query = query;
-  if (body && Object.keys(body).length) args.body = body;
-  const hasArgs = Object.keys(args).length > 0;
-  console.log(`[${new Date().toISOString()}] ${method} ${p}${hasArgs ? ' ' + JSON.stringify(args) : ''}`);
-  next();
-});
-
 const SCRIPT_PATH = path.join(__dirname, 'fetch-s3-logs.js');
 const LOG_DIR = path.join(__dirname, 'logs');
+
+function isInsideLogs(candidate) {
+  const base = fs.existsSync(LOG_DIR) ? fs.realpathSync(LOG_DIR) : LOG_DIR;
+  const target = fs.existsSync(candidate) ? fs.realpathSync(candidate) : candidate;
+  const relative = path.relative(base, target);
+  return relative === '' || (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
+}
 
 // Parse DEFAULTS out of fetch-s3-logs.js by regex extraction of individual key-value pairs
 function readDefaults() {
@@ -94,11 +90,13 @@ app.get('/api/logs', (req, res) => {
       const results = [];
       for (const name of fs.readdirSync(dir)) {
         const full = path.join(dir, name);
+        if (!isInsideLogs(full)) continue;
         const rel = base ? `${base}/${name}` : name;
-        if (fs.statSync(full).isDirectory()) {
+        const stat = fs.lstatSync(full);
+        if (stat.isSymbolicLink()) continue;
+        if (stat.isDirectory()) {
           results.push(...walk(full, rel));
         } else {
-          const stat = fs.statSync(full);
           results.push({ name: rel, size: stat.size, mtime: stat.mtimeMs });
         }
       }
@@ -113,11 +111,12 @@ app.get('/api/logs', (req, res) => {
 // GET /api/logs/content?file=... — read a log file
 app.get('/api/logs/content', (req, res) => {
   const file = req.query.file;
-  if (!file) return res.status(400).json({ error: 'file required' });
+  if (typeof file !== 'string' || !file) return res.status(400).json({ error: 'file required' });
   const abs = path.resolve(LOG_DIR, file);
-  if (!abs.startsWith(LOG_DIR)) return res.status(403).json({ error: 'forbidden' });
+  if (!isInsideLogs(abs)) return res.status(403).json({ error: 'forbidden' });
   if (!fs.existsSync(abs)) return res.status(404).json({ error: 'not found' });
   const stat = fs.statSync(abs);
+  if (!stat.isFile()) return res.status(400).json({ error: 'file required' });
   const MAX = 5 * 1024 * 1024; // 5 MB preview
   if (stat.size > MAX) {
     const fd = fs.openSync(abs, 'r');
@@ -131,10 +130,12 @@ app.get('/api/logs/content', (req, res) => {
 
 // GET /api/tail?outDir=...  — SSE stream of new JSON objects appended to all-logs.filtered.log
 app.get('/api/tail', (req, res) => {
-  const outDirParam = (req.query.outDir || './logs').trim();
+  const outDirParam = req.query.outDir || './logs';
+  if (typeof outDirParam !== 'string') return res.status(400).json({ error: 'invalid output directory' });
   const abs = path.isAbsolute(outDirParam)
     ? path.join(outDirParam, 'all-logs.filtered.log')
     : path.join(__dirname, outDirParam, 'all-logs.filtered.log');
+  if (!isInsideLogs(abs)) return res.status(403).json({ error: 'forbidden' });
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -183,6 +184,7 @@ app.get('/api/tail', (req, res) => {
 
   const readNew = () => {
     if (!fs.existsSync(abs)) return;
+    if (!isInsideLogs(abs)) return;
     try {
       const stat = fs.statSync(abs);
       if (stat.size <= position) return;
@@ -239,17 +241,9 @@ app.post('/api/run', (req, res) => {
   if (body.startAfter) args.push('--start-after', body.startAfter);
   if (body.maxKeys) args.push('--max-keys', String(body.maxKeys));
 
-  send('cmd', `node ${[path.basename(SCRIPT_PATH), ...args.slice(1)].map((a) => (a.includes(' ') ? `"${a}"` : a)).join(' ')}`);
+  send('cmd', 'Raw log fetch started.');
 
-  const env = {
-    ...process.env,
-    AWS_PROFILE: 'smallcase',
-    AWS_SDK_LOAD_CONFIG: '1',
-    AWS_REGION: 'ap-south-1',
-    AWS_DEFAULT_REGION: 'ap-south-1',
-  };
-
-  const child = spawn('node', args, { env });
+  const child = spawn('node', args, { env: process.env });
 
   child.stdout.on('data', (chunk) => {
     chunk.toString().split('\n').filter(Boolean).forEach((line) => send('stdout', line));
@@ -266,6 +260,8 @@ app.post('/api/run', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
+const LOOPBACK_HOST = '127.0.0.1';
+const HOST = process.env.HOST || LOOPBACK_HOST;
 
 process.on('uncaughtException', (err) => {
   console.error('[uncaughtException]', err);
@@ -281,6 +277,6 @@ server.on('error', (err) => {
   console.error('[server error]', err);
   process.exit(1);
 });
-server.listen(PORT, () => {
-  console.log(`fetch-s3-logs UI running at http://localhost:${PORT}`);
+server.listen(PORT, HOST, () => {
+  console.log(`fetch-s3-logs UI running at http://${HOST}:${server.address().port}`);
 });

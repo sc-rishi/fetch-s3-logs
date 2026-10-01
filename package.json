@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "s3-logs-fetch.js",
   "scripts": {
+    "access:check": "node access-check.js",
     "logs:search": "node fetch-by-identifier.js",
     "recon:search": "node search-s3-recon.js",
     "test": "node --test",

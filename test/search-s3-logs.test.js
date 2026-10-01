@@ -38,6 +38,10 @@ function selectEvents(lines, size = 100) {
   ]);
 }
 
+function searchResponse(lines) {
+  return { Payload: selectEvents(lines), Body: Readable.from([zlib.gzipSync(`${lines.join('\n')}\n`)]) };
+}
+
 function object(overrides = {}) {
   return {
     bucket: 'bucket',
@@ -99,6 +103,9 @@ test('maps every service to the required log surfaces', () => {
     ['platform-api/eks']
   );
   assert.equal(buildSources(['jobs-recon'], 'prod', 'sbiReconAllOrders')[0].forceGzip, true);
+  assert.throws(() => parseArgs(['--service', 'jobs', '--text', 'x', '--env', 'staging']), ValidationError);
+  assert.throws(() => parseArgs(['--service', 'jobs-recon', '--job-name', 'recon', '--text', 'x', '--env', 'staging']), ValidationError);
+  assert.throws(() => parseArgs(['--service', 'all', '--text', 'x', '--env', 'staging']), ValidationError);
 });
 
 test('builds a literal case-insensitive S3 Select expression', () => {
@@ -106,7 +113,8 @@ test('builds a literal case-insensitive S3 Select expression', () => {
   assert.match(expression, /LOWER\(s\._1\)/);
   assert.match(expression, /sc!_!%!!o''reilly/);
   assert.match(expression, /ESCAPE '!'/);
-  assert.match(expression, /CHAR_LENGTH\(s\._2\) > 0/);
+  assert.match(expression, /s\._2 IS NOT MISSING/);
+  assert.match(expression, /s\._1 NOT LIKE/);
 });
 
 test('date-scoped discovery lists only the requested prefix', async () => {
@@ -173,7 +181,7 @@ test('S3 Select returns complete EC2 and wrapped EKS lines', async () => {
   const ec2 = JSON.stringify({ context: { deeply: { tag: 'sc_nested' } }, time: '2026-06-05T09:00:00Z' });
   const eks = JSON.stringify({ time: '2026-06-05T09:01:00Z', message: JSON.stringify({ tag: 'sc_nested' }) });
   const s3 = { async send() { return { Payload: selectEvents([ec2, eks]) }; } };
-  const result = await scanObject(s3, object(), 'sc_nested', null);
+  const result = await scanObject(s3, object(), 'sc_nested', null, undefined, 'compact-jsonl');
   assert.equal(result.method, 'select');
   assert.deepEqual(result.lines, [ec2, eks]);
 });
@@ -188,7 +196,7 @@ test('Select failure falls back to gzip download and exact local matching', asyn
       return { Body: Readable.from([zlib.gzipSync(Buffer.from(`${matching}\nother\n`))]) };
     },
   };
-  const result = await scanObject(s3, object(), 'SC_FALLBACK', null);
+  const result = await scanObject(s3, object(), 'SC_FALLBACK', null, undefined, 'compact-jsonl');
   assert.equal(result.method, 'fallback');
   assert.deepEqual(result.lines, [matching]);
 });
@@ -211,7 +219,7 @@ test('tab collision triggers whole-object fallback', async () => {
       return { Body: Readable.from([zlib.gzipSync(Buffer.from(`${line}\n`))]) };
     },
   };
-  const result = await scanObject(s3, object(), 'sc_tab', null);
+  const result = await scanObject(s3, object(), 'sc_tab', null, undefined, 'compact-jsonl');
   assert.equal(result.method, 'fallback');
   assert.deepEqual(result.lines, [line]);
 });
@@ -234,7 +242,7 @@ test('malformed Select output triggers whole-object fallback', async () => {
       return { Body: Readable.from([zlib.gzipSync(Buffer.from(`${line}\n`))]) };
     },
   };
-  const result = await scanObject(s3, object(), 'sc_malformed', null);
+  const result = await scanObject(s3, object(), 'sc_malformed', null, undefined, 'compact-jsonl');
   assert.equal(result.method, 'fallback');
   assert.deepEqual(result.lines, [line]);
 });
@@ -249,7 +257,7 @@ test('missing Select completion event triggers whole-object fallback', async () 
       return { Body: Readable.from([zlib.gzipSync(Buffer.from(`${line}\n`))]) };
     },
   };
-  const result = await scanObject(s3, object(), 'sc_incomplete', null);
+  const result = await scanObject(s3, object(), 'sc_incomplete', null, undefined, 'compact-jsonl');
   assert.equal(result.method, 'fallback');
   assert.deepEqual(result.lines, [line]);
 });
@@ -275,7 +283,7 @@ test('successful searches stream complete records to both output files', async (
           }],
         };
       }
-      return { Payload: selectEvents([line]) };
+      return searchResponse([line]);
     },
   };
   try {
@@ -422,7 +430,7 @@ test('runAutoSearch stops at the first tier that finds a match and merges only w
         }
         return { Contents: [] };
       }
-      return { Payload: selectEvents([line]) };
+      return searchResponse([line]);
     },
   };
   const redash = {
@@ -450,16 +458,56 @@ test('runAutoSearch widens through every tier when nothing matches, then stops a
   const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 's3-auto-search-test-'));
   const s3 = { async send(command) {
     if (command.constructor.name === 'ListObjectsV2Command') return { Contents: [] };
-    return { Payload: selectEvents([]) };
+    return searchResponse([]);
   } };
   const redash = { isConfigured: () => true, findOrderAnchorDate: async () => ({ date: '2026-06-06T00:00:00.000Z' }) };
   try {
     const args = parseArgs(['--service', 'jobs', '--order-id', '999', '--out', outputDir]);
     const exitCode = await runAutoSearch(args, { s3, redash });
-    assert.equal(exitCode, 0);
+    assert.equal(exitCode, 2);
     const manifest = JSON.parse(fs.readFileSync(path.join(outputDir, 'manifest.json'), 'utf8'));
+    assert.equal(manifest.status, 'no_objects');
     assert.equal(manifest.totalMatched, 0);
     assert.equal(manifest.tiers.length, 4, 'must have tried every tier up to the cap');
+  } finally {
+    fs.rmSync(outputDir, { recursive: true, force: true });
+  }
+});
+
+test('runAutoSearch retains failed and zero-object tier coverage after a later match', async () => {
+  const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 's3-auto-search-test-'));
+  const line = JSON.stringify({ time: '2026-06-14T09:00:00Z', tag: 'sc_later' });
+  const s3 = { async send(command) {
+    if (command.constructor.name === 'ListObjectsV2Command') {
+      const { Prefix } = command.input;
+      if (Prefix.includes('2026-06-08') || Prefix.includes('2026-06-14')) {
+        return { Contents: [{ Key: `${Prefix}one.gz`, Size: 10 }] };
+      }
+      return { Contents: [] };
+    }
+    if (command.input.Key.includes('2026-06-08')) throw new Error('object unavailable');
+    return searchResponse([line]);
+  } };
+  const redash = { isConfigured: () => true, findOrderAnchorDate: async () => ({ date: '2026-06-06T00:00:00.000Z' }) };
+  try {
+    const args = parseArgs(['--service', 'order-updates', '--tag', 'sc_later', '--out', outputDir]);
+    const exitCode = await runAutoSearch(args, { s3, redash });
+    const manifest = JSON.parse(fs.readFileSync(path.join(outputDir, 'manifest.json'), 'utf8'));
+    assert.equal(exitCode, 2);
+    assert.equal(manifest.status, 'incomplete');
+    assert.equal(manifest.tiers.length, 3);
+    assert.equal(manifest.tiers[0].status, 'incomplete');
+    assert.equal(manifest.tiers[0].objects.failed, 3);
+    assert.equal(manifest.tiers[0].errors.length, 3);
+    assert.deepEqual(
+      [manifest.tiers[1].objects.listed, manifest.tiers[1].objects.scanned, manifest.tiers[1].objects.failed],
+      [0, 0, 0]
+    );
+    assert.equal(manifest.tiers[2].objects.scanned, 3);
+    assert.equal(manifest.totalMatched, 3);
+    assert.equal(fs.existsSync(path.join(outputDir, '.tier-0')), false);
+    assert.equal(fs.existsSync(path.join(outputDir, '.tier-1')), false);
+    assert.equal(fs.existsSync(path.join(outputDir, '.tier-2')), false);
   } finally {
     fs.rmSync(outputDir, { recursive: true, force: true });
   }
@@ -491,17 +539,19 @@ test('runAutoSearch falls back to the flat 30-day window when Redash is not conf
         listedPrefixes.push(command.input.Prefix);
         return { Contents: [] };
       }
-      return { Payload: selectEvents([]) };
+      return searchResponse([]);
     },
   };
   const redash = { isConfigured: () => false };
   try {
     const args = parseArgs(['--service', 'order-updates', '--tag', 'sc_x', '--out', outputDir]);
     const exitCode = await runAutoSearch(args, { s3, redash });
-    assert.equal(exitCode, 0);
+    assert.equal(exitCode, 2);
     // flat fallback lists 30 distinct date prefixes per dated source, same as the pre-auto-scope path.
     const uniqueDates = new Set(listedPrefixes.map((p) => p.match(/\d{4}-\d{2}-\d{2}/)?.[0]).filter(Boolean));
     assert.equal(uniqueDates.size, 30);
+    const manifest = JSON.parse(fs.readFileSync(path.join(outputDir, 'manifest.json'), 'utf8'));
+    assert.deepEqual(manifest.anchorLookup, { status: 'unavailable', reason: 'redash-not-configured' });
   } finally {
     fs.rmSync(outputDir, { recursive: true, force: true });
   }
@@ -513,7 +563,7 @@ test('main() bypasses auto-scope entirely when an explicit date is given', async
   const s3 = {
     async send(command) {
       if (command.constructor.name === 'ListObjectsV2Command') return { Contents: [] };
-      return { Payload: selectEvents([]) };
+      return searchResponse([]);
     },
   };
   const redash = { isConfigured: () => { redashCalled = true; return true; } };
@@ -522,7 +572,7 @@ test('main() bypasses auto-scope entirely when an explicit date is given', async
       ['--service', 'order-updates', '--tag', 'sc_x', '--date', '2026-06-05', '--out', outputDir],
       { s3, redash }
     );
-    assert.equal(exitCode, 0);
+    assert.equal(exitCode, 2);
     assert.equal(redashCalled, false, 'an explicit date must never trigger a Redash lookup');
     assert.equal(fs.existsSync(path.join(outputDir, '.tier-0')), false, 'must not use tiered output layout');
   } finally {
@@ -542,4 +592,220 @@ test('listing failures produce an incomplete manifest and exit code 2', async ()
   } finally {
     fs.rmSync(outputDir, { recursive: true, force: true });
   }
+});
+
+test('zero listed objects differs from a complete search with zero matching lines', async () => {
+  const noObjectsDir = fs.mkdtempSync(path.join(os.tmpdir(), 's3-no-objects-'));
+  const noMatchDir = fs.mkdtempSync(path.join(os.tmpdir(), 's3-no-match-'));
+  const s3 = (hasObjects) => ({ async send(command) {
+    if (command.constructor.name === 'ListObjectsV2Command') {
+      return { Contents: hasObjects ? [{ Key: `${command.input.Prefix}one.gz`, Size: 10 }] : [] };
+    }
+    return searchResponse([]);
+  } });
+  try {
+    const args = (out) => parseArgs(['--service', 'order-updates', '--text', 'absent', '--date', '2026-06-05', '--out', out]);
+    assert.equal(await runSearch(args(noObjectsDir), { s3: s3(false) }), 2);
+    assert.equal(await runSearch(args(noMatchDir), { s3: s3(true) }), 0);
+    const noObjects = JSON.parse(fs.readFileSync(path.join(noObjectsDir, 'manifest.json'), 'utf8'));
+    const noMatch = JSON.parse(fs.readFileSync(path.join(noMatchDir, 'manifest.json'), 'utf8'));
+    assert.equal(noObjects.status, 'no_objects');
+    assert.ok(noObjects.coverage.every((scope) => scope.status === 'no_objects'));
+    assert.equal(noMatch.status, 'complete');
+    assert.equal(noMatch.lines.matched, 0);
+    assert.ok(noMatch.coverage.every((scope) => scope.scannedObjects === 1));
+  } finally {
+    fs.rmSync(noObjectsDir, { recursive: true, force: true });
+    fs.rmSync(noMatchDir, { recursive: true, force: true });
+  }
+});
+
+test('manifest and safe evidence omit raw identifiers while marking exact matches', async () => {
+  const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 's3-safe-evidence-'));
+  const configDir = fs.mkdtempSync(path.join(os.tmpdir(), 's3-safe-enums-'));
+  const enumPath = path.join(configDir, 'source-enums.json');
+  fs.writeFileSync(enumPath, JSON.stringify({ event: ['ORDER_FAILED'] }));
+  const exact = JSON.stringify({ time: '2026-06-05T09:00:00Z', tag: 'sc_secret', event: 'ORDER_FAILED', status: 'MYSECRET', message: 'password=hidden' });
+  const substring = JSON.stringify({ time: '2026-06-05T09:01:00Z', message: 'prefix sc_secret suffix' });
+  const s3 = { async send(command) {
+    if (command.constructor.name === 'ListObjectsV2Command') {
+      return { Contents: [{ Key: `${command.input.Prefix}private-account-123.gz`, Size: 10 }] };
+    }
+    return searchResponse([exact, substring]);
+  } };
+  try {
+    const args = parseArgs(['--service', 'order-updates', '--tag', 'sc_secret', '--date', '2026-06-05', '--out', outputDir,
+      '--validated-enums', enumPath]);
+    assert.equal(await runSearch(args, { s3 }), 0);
+    const manifestText = fs.readFileSync(path.join(outputDir, 'manifest.json'), 'utf8');
+    const safeText = fs.readFileSync(path.join(outputDir, 'safe-matches.jsonl'), 'utf8');
+    assert.doesNotMatch(manifestText + safeText, /sc_secret|private-account-123|password=hidden/);
+    const manifest = JSON.parse(manifestText);
+    assert.equal(manifest.query.kind, 'tag');
+    assert.equal(manifest.query.value, undefined);
+    assert.equal(manifest.coverage.length, 3);
+    assert.equal(manifest.matchedObjectRefs.length, 3);
+    const safeMatches = safeText.trim().split('\n').map(JSON.parse);
+    assert.equal(safeMatches.length, 6);
+    assert.deepEqual(safeMatches[0].exactMatchPaths, ['tag']);
+    assert.equal(safeMatches[0].event, 'ORDER_FAILED');
+    assert.equal(safeMatches[0].status, undefined);
+    assert.equal(safeMatches[1].correlation, 'substring-candidate');
+    assert.match(fs.readFileSync(path.join(outputDir, 'matches.jsonl'), 'utf8'), /password=hidden/);
+  } finally {
+    fs.rmSync(outputDir, { recursive: true, force: true });
+    fs.rmSync(configDir, { recursive: true, force: true });
+  }
+});
+
+test('a failed source-date listing remains visible without leaking its error message', async () => {
+  const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 's3-coverage-'));
+  const s3 = { async send(command) {
+    if (command.constructor.name === 'ListObjectsV2Command') {
+      if (command.input.Prefix.includes('Out-logs')) {
+        const error = new Error('Access denied for private-account-123');
+        error.name = 'AccessDenied';
+        throw error;
+      }
+      return { Contents: [{ Key: `${command.input.Prefix}one.gz`, Size: 10 }] };
+    }
+    return searchResponse([]);
+  } };
+  try {
+    const args = parseArgs(['--service', 'order-updates', '--text', 'absent', '--date', '2026-06-05', '--out', outputDir]);
+    assert.equal(await runSearch(args, { s3 }), 2);
+    const manifestText = fs.readFileSync(path.join(outputDir, 'manifest.json'), 'utf8');
+    const manifest = JSON.parse(manifestText);
+    assert.equal(manifest.status, 'incomplete');
+    assert.equal(manifest.coverage.length, 3);
+    assert.equal(manifest.coverage.filter((scope) => scope.status === 'listing_failed').length, 1);
+    assert.equal(manifest.errors[0].error, 'AccessDenied');
+    assert.doesNotMatch(manifestText, /private-account-123/);
+  } finally {
+    fs.rmSync(outputDir, { recursive: true, force: true });
+  }
+});
+
+test('nonempty output roots and ambiguous anchors stop before S3 access', async () => {
+  const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 's3-existing-'));
+  fs.writeFileSync(path.join(outputDir, 'sentinel'), 'existing evidence');
+  let s3Called = false;
+  const s3 = { async send() { s3Called = true; return { Contents: [] }; } };
+  try {
+    const args = parseArgs(['--service', 'order-updates', '--tag', 'sc_secret', '--date', '2026-06-05', '--out', outputDir]);
+    await assert.rejects(() => runSearch(args, { s3 }), ValidationError);
+    assert.equal(s3Called, false);
+    assert.equal(fs.readFileSync(path.join(outputDir, 'sentinel'), 'utf8'), 'existing evidence');
+    fs.rmSync(path.join(outputDir, 'sentinel'));
+    const autoArgs = parseArgs(['--service', 'order-updates', '--tag', 'sc_secret', '--out', outputDir]);
+    const redash = { isConfigured: () => true, findOrderAnchorDate: async () => ({ date: null, reason: 'ambiguous' }) };
+    assert.equal(await runAutoSearch(autoArgs, { s3, redash }), 3);
+    const manifest = JSON.parse(fs.readFileSync(path.join(outputDir, 'manifest.json'), 'utf8'));
+    assert.equal(manifest.status, 'ambiguous_anchor');
+    assert.equal(manifest.query.value, undefined);
+    assert.match(manifest.note, /explicit date or batchId/);
+    assert.equal(s3Called, false);
+  } finally {
+    fs.rmSync(outputDir, { recursive: true, force: true });
+  }
+});
+
+test('default identifier search streams tabs, empty CSV columns, and comment lines without Select', async () => {
+  const lines = ['prefix\ttarget', 'prefix\t\ttarget', '#target'];
+  const calls = [];
+  const s3 = { async send(command) {
+    calls.push(command.constructor.name);
+    return { Body: Readable.from([lines.join('\n') + '\n']) };
+  } };
+  const result = await scanObject(s3, object({ key: 'plain.log' }), 'target', null);
+  assert.equal(result.method, 'local');
+  assert.deepEqual(result.lines, lines);
+  assert.deepEqual(calls, ['GetObjectCommand']);
+  assert.equal(parseArgs(['--service', 'jobs', '--text', 'target']).selectFormat, undefined);
+  assert.throws(() => parseArgs(['--service', 'jobs', '--text', 'target', '--select-format', 'auto']), ValidationError);
+});
+
+test('incomplete Select statistics discard partial candidates before local fallback', async () => {
+  for (const scanned of [undefined, null, NaN, Infinity, -1, 99]) {
+    let calls = 0;
+    const stale = JSON.stringify({ message: 'target partial' });
+    const actual = JSON.stringify({ message: 'target complete' });
+    const s3 = { async send(command) {
+      calls += 1;
+      if (command.constructor.name === 'SelectObjectContentCommand') return { Payload: payload([
+        { Records: { Payload: Buffer.from(JSON.stringify({ _1: stale }) + '\n') } },
+        { Stats: { Details: { BytesScanned: scanned } } }, { End: {} },
+      ]) };
+      return { Body: Readable.from([actual + '\n']) };
+    } };
+    const result = await scanObject(s3, object({ key: 'plain.log' }), 'target', null, undefined, 'compact-jsonl');
+    assert.equal(result.method, 'fallback');
+    assert.equal(calls, 2);
+    assert.deepEqual(result.lines, [actual]);
+  }
+});
+
+test('job event time remains unverified when only upload time or unsupported timestamps are available', async () => {
+  const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 's3-job-time-'));
+  const lines = [
+    '2026-09-01T12:00:00Z target job failed',
+    JSON.stringify({ timestamp: '2026-09-01T12:00:00Z', message: 'target' }),
+    JSON.stringify({ time: '2026-09-01T12:00:00', message: 'target' }),
+    JSON.stringify({ time: '2026-09-02T12:00:00Z', message: 'target' }),
+  ];
+  const s3 = { async send(command) {
+    if (command.constructor.name === 'ListObjectsV2Command') return { Contents: [
+      { Key: 'job-output', Size: 100, LastModified: new Date('2026-09-02T12:00:00Z') },
+    ] };
+    return { Body: Readable.from([zlib.gzipSync(lines.join('\n') + '\n')]) };
+  } };
+  try {
+    const exitCode = await main(['--service', 'jobs-recon', '--job-name', 'example', '--text', 'target',
+      '--date', '2026-09-01', '--out', outputDir], { s3 });
+    const manifest = JSON.parse(fs.readFileSync(path.join(outputDir, 'manifest.json')));
+    assert.equal(exitCode, 2);
+    assert.equal(manifest.status, 'incomplete');
+    assert.equal(manifest.lines.matched, 3);
+    assert.equal(manifest.lines.timeUnverified, 3);
+    assert.equal(manifest.coverage[0].timeUnverified, 3);
+    const safe = fs.readFileSync(path.join(outputDir, 'safe-matches.jsonl'), 'utf8').trim().split('\n').map(JSON.parse);
+    assert.ok(safe.every((record) => record.timeStatus === 'unverified'));
+  } finally {
+    fs.rmSync(outputDir, { recursive: true, force: true });
+  }
+});
+
+test('evidence specs retain array locations and correlate only the matching order element', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 's3-spec-pipeline-'));
+  const outputDir = path.join(root, 'out');
+  const specPath = path.join(root, 'spec.json');
+  const source = `orders@${'a'.repeat(40)}:src/order.js:10`;
+  fs.writeFileSync(specPath, JSON.stringify({ fields: [
+    { path: 'orders[].status', kind: 'status', values: ['FAILED'], source },
+  ], identifiers: [{ path: 'orders[].tag', source }] }));
+  const line = JSON.stringify({ orders: [
+    { tag: 'target', status: 'FAILED' }, { tag: 'other', status: 'FAILED' },
+  ] });
+  const calls = [];
+  const s3 = { async send(command) {
+    calls.push(command.constructor.name);
+    if (command.constructor.name === 'ListObjectsV2Command') return { Contents: [{ Key: 'one.log', Size: 100 }] };
+    return { Payload: selectEvents([line]) };
+  } };
+  try {
+    const code = await main(['--service', 'platform-api', '--env', 'staging', '--tag', 'target',
+      '--date', '2026-06-05', '--out', outputDir, '--evidence-spec', specPath,
+      '--select-format', 'compact-jsonl'], { s3 });
+    assert.equal(code, 0);
+    assert.deepEqual(calls, ['ListObjectsV2Command', 'SelectObjectContentCommand']);
+    const safe = JSON.parse(fs.readFileSync(path.join(outputDir, 'safe-matches.jsonl'), 'utf8'));
+    assert.deepEqual(safe.evidence.map(({ path: location, correlation }) => [location, correlation]), [
+      ['orders[0].status', 'matched_element'], ['orders[1].status', 'other_element'],
+    ]);
+    assert.equal(safe.exactMatchPaths, undefined);
+    assert.equal(safe.projection.status, 'partial');
+    const manifest = JSON.parse(fs.readFileSync(path.join(outputDir, 'manifest.json')));
+    assert.equal(manifest.selectFormat, 'compact-jsonl');
+    assert.equal(manifest.objects.selected, 1);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });

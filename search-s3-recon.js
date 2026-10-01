@@ -3,6 +3,7 @@
 /* eslint-disable no-console */
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const {
   S3Client,
   SelectObjectContentCommand,
@@ -12,12 +13,10 @@ const {
   listObjects,
   mapConcurrent,
   readSelectPayload,
+  validateSelectComplete,
   writeJson,
 } = require('./s3-search-utils');
-
-process.env.AWS_PROFILE = process.env.AWS_PROFILE || 'smallcase';
-process.env.AWS_SDK_LOAD_CONFIG = '1';
-process.env.AWS_REGION = process.env.AWS_REGION || 'ap-south-1';
+const { safeError } = require('./safe-evidence');
 
 const BUCKET = 'sc-integrations-sbi-attachments';
 const DEFAULT_OUTPUT_DIR = './logs/recon-search';
@@ -106,16 +105,15 @@ function predicate(args) {
   return terms.join(' OR ');
 }
 
-async function listCsvKeys(s3, source) {
-  const objects = await listObjects(s3, {
+async function listCsvObjects(s3, source) {
+  return listObjects(s3, {
     bucket: BUCKET,
     prefix: source.prefix,
     filter: (key) => key.toLowerCase().endsWith('.csv'),
   });
-  return objects.map((object) => object.key);
 }
 
-async function selectRows(s3, key, where) {
+async function selectRows(s3, key, where, size) {
   const response = await s3.send(new SelectObjectContentCommand({
     Bucket: BUCKET,
     Key: key,
@@ -124,21 +122,26 @@ async function selectRows(s3, key, where) {
     InputSerialization: { CSV: { FileHeaderInfo: 'IGNORE' } },
     OutputSerialization: { CSV: {} },
   }));
-  const { output } = await readSelectPayload(response.Payload);
+  const { output, ended, stats } = await readSelectPayload(response.Payload);
+  validateSelectComplete({ ended, stats }, size);
   return output.trim() ? output.trim().split(/\r?\n/) : [];
 }
 
-async function scanObject(s3, source, key, where) {
+async function scanObject(s3, source, key, where, size) {
   try {
-    const rows = await selectRows(s3, key, where);
+    const rows = await selectRows(s3, key, where, size);
     return rows.length ? { surface: source.name, key, rows } : null;
   } catch (error) {
-    return { surface: source.name, key, error: error.message };
+    return { surface: source.name, key, error: safeError(error) };
   }
 }
 
 function matchedFileName(key) {
-  return key.replace(/[^A-Za-z0-9._-]+/g, '__');
+  return `${crypto.createHash('sha256').update(key).digest('hex').slice(0, 16)}.csv`;
+}
+
+function objectRef(key) {
+  return crypto.createHash('sha256').update(key).digest('hex').slice(0, 16);
 }
 
 async function downloadMatch(s3, match, outDir) {
@@ -150,14 +153,19 @@ async function downloadMatch(s3, match, outDir) {
 async function main(argv = process.argv.slice(2), dependencies = {}) {
   const args = parseArgs(argv);
   const outputDir = path.resolve(args.out);
-  fs.mkdirSync(outputDir, { recursive: true });
-  const s3 = dependencies.s3 || new S3Client({ region: process.env.AWS_REGION });
+  if (fs.existsSync(outputDir) && (!fs.statSync(outputDir).isDirectory() || fs.readdirSync(outputDir).length)) {
+    throw new Error('Output directory must be empty.');
+  }
+  fs.mkdirSync(outputDir, { recursive: true, mode: 0o700 });
+  const s3 = dependencies.s3 || new S3Client({});
   const where = predicate(args);
   const manifest = {
     bucket: BUCKET,
     searchedPrefixes: SOURCES.map((source) => source.prefix),
-    query: { tags: args.tags, orderIds: args.orderIds, exchangeOrderIds: args.exchangeOrderIds },
+    query: { tags: args.tags.length, orderIds: args.orderIds.length, exchangeOrderIds: args.exchangeOrderIds.length },
     columnOrder: CSV_COLUMNS,
+    sources: [],
+    listedFiles: 0,
     scannedFiles: 0,
     matchedFiles: 0,
     downloadedFiles: [],
@@ -166,50 +174,69 @@ async function main(argv = process.argv.slice(2), dependencies = {}) {
   const matches = [];
 
   for (const source of SOURCES) {
-    let keys;
+    const coverage = { surface: source.name, listed: 0, scanned: 0, matched: 0, failed: 0, status: 'running' };
+    manifest.sources.push(coverage);
+    let objects;
     try {
-      keys = await listCsvKeys(s3, source);
+      objects = await listCsvObjects(s3, source);
     } catch (error) {
-      manifest.errors.push({ surface: source.name, key: null, error: error.message });
+      coverage.failed += 1;
+      coverage.status = 'incomplete';
+      manifest.errors.push({ surface: source.name, error: safeError(error) });
       continue;
     }
-    manifest.scannedFiles += keys.length;
-    const results = await mapConcurrent(keys, args.concurrency, (key) => scanObject(s3, source, key, where));
+    coverage.listed = objects.length;
+    manifest.listedFiles += objects.length;
+    const results = await mapConcurrent(objects, args.concurrency, ({ key, size }) => scanObject(s3, source, key, where, size));
     for (const result of results) {
+      if (result?.error) {
+        coverage.failed += 1;
+        manifest.errors.push({ surface: result.surface, objectRef: objectRef(result.key), error: result.error });
+        continue;
+      }
+      coverage.scanned += 1;
+      manifest.scannedFiles += 1;
       if (!result) continue;
-      if (result.error) { manifest.errors.push(result); continue; }
       try {
         const outputPath = await downloadMatch(s3, result, outputDir);
         matches.push({ ...result, downloadedFile: outputPath });
-        manifest.downloadedFiles.push(outputPath);
+        coverage.matched += 1;
+        manifest.downloadedFiles.push({ surface: result.surface, objectRef: objectRef(result.key) });
       } catch (error) {
-        manifest.errors.push({ surface: result.surface, key: result.key, error: error.message });
+        coverage.failed += 1;
+        manifest.errors.push({ surface: result.surface, objectRef: objectRef(result.key), error: safeError(error) });
       }
     }
+    coverage.status = coverage.failed ? 'incomplete' : objects.length ? 'complete' : 'empty';
   }
 
   manifest.matchedFiles = matches.length;
+  manifest.status = manifest.errors.length ? 'incomplete' : manifest.scannedFiles ? 'complete' : 'empty';
   writeJson(path.join(outputDir, 'matches.json'), matches);
   writeJson(path.join(outputDir, 'manifest.json'), manifest);
+  writeJson(path.join(outputDir, 'safe-matches.json'), matches.map((match) => ({
+    surface: match.surface,
+    objectRef: objectRef(match.key),
+    matchedRows: match.rows.length,
+  })));
   console.log(JSON.stringify({
+    status: manifest.status,
     scannedFiles: manifest.scannedFiles,
     matchedFiles: manifest.matchedFiles,
-    downloadedFiles: manifest.downloadedFiles,
-    errors: manifest.errors,
-    outputDir,
+    failedFiles: manifest.errors.length,
   }, null, 2));
-  return manifest.errors.length ? 2 : 0;
+  return manifest.status === 'incomplete' ? 2 : manifest.status === 'empty' ? 3 : 0;
 }
 
 async function cli() {
   try {
     process.exitCode = await main();
   } catch (error) {
-    console.error('Recon search failed: ' + error.message);
+    console.error('Recon search failed: ' + safeError(error));
     process.exitCode = 1;
   }
 }
 
 if (require.main === module) cli();
 
-module.exports = { listCsvKeys, main, parseArgs, predicate, scanObject };
+module.exports = { listCsvObjects, main, parseArgs, predicate, scanObject };

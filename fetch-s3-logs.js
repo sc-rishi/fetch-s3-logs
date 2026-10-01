@@ -30,12 +30,15 @@
 /* eslint-disable no-console */
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const readline = require('readline');
 const { pipeline, Readable } = require('stream');
 const { promisify } = require('util');
-const zlib = require('zlib');
 const { S3Client, ListObjectsV2Command, GetObjectCommand, HeadObjectCommand, SelectObjectContentCommand } = require('@aws-sdk/client-s3');
-const { forEachSelectRecord } = require('./s3-search-utils');
+const {
+  COMPACT_JSONL, compactJsonLine, compactJsonSelectExpression, forEachSelectRecord, logInputStream, validateSelectComplete,
+} = require('./s3-search-utils');
+const { safeTimestamp } = require('./safe-evidence');
 const {
   DEFAULT_SEARCH_DAYS,
   RAW_LINE_CSV,
@@ -48,19 +51,17 @@ const {
 } = require('./search-s3-logs');
 
 const pipe = promisify(pipeline);
+const PRIVATE_DIR_MODE = 0o700;
+const PRIVATE_FILE_MODE = 0o600;
+const SOURCE_ALIAS_BYTES = 8;
 
-// Hardcoded AWS environment for this job/script
-process.env.AWS_PROFILE = 'smallcase';
-process.env.AWS_SDK_LOAD_CONFIG = '1';
-process.env.AWS_REGION = 'ap-south-1';
-process.env.AWS_DEFAULT_REGION = 'ap-south-1';
-const DATE = '2026-06-05';
+const DATE = null;
 // Set BOTH of these (e.g. '2026-06-01' / '2026-06-24') to scan a day range by default with no CLI
 // args — the script then substitutes each day into a literal "{date}" placeholder in S3_URL below
 // (swap the active S3_URL's `${DATE}` for `{date}` when using this). Leave both empty ('') to keep
 // today's single fixed-date behavior driven by DATE above. Overridden by --date/--date-from/--date-to.
-const DATE_FROM = '';
-const DATE_TO = '';
+const DATE_FROM = '2026-09-01';
+const DATE_TO = '2026-09-30';
 const DEFAULT_CONCURRENCY = 4;
 // Script-level defaults (can be edited directly instead of passing CLI flags)
 const DEFAULTS = {
@@ -72,7 +73,7 @@ const DEFAULTS = {
   // that actually has data for it — that's how the checked-in sample log was generated. If you bump DATE to
   // something recent, switch the active default to the EKS block below instead (order-updates/broker-api are
   // EKS-only for recent dates — verified live 2026-09-22).
-  S3_URL: `s3://sc-pm2logs-new/PROD/${DATE}/sc-integrations-order-updates/`, //ec2, has data for DATE=2026-06-05
+  // S3_URL: `s3://sc-pm2logs-new/PROD/${DATE}/sc-integrations-order-updates/`, //ec2, has data for DATE=2026-06-05
   // S3_URL: 's3://sc-pm2logs-new/PROD/{date}/sc-integrations-order-updates/', //ec2, use with DATE_FROM/DATE_TO set above for a day-range scan
   // S3_URL: `s3://sc-pm2logs-new/PROD/${DATE}/sc-integrations-broker-api/`, //ec2, has data for DATE=2026-06-05
   // S3_URL: `s3://sc-pm2logs-new/PROD/${DATE}/sc-platform-api/`, //ec2, still live (dual-running, any date)
@@ -80,7 +81,7 @@ const DEFAULTS = {
 
   // --- Kubernetes/EKS (current hosting, bucket sc-eks-pod-logs, namespaced <staging|production>/<date>/<ns>/<service>-pod/) ---
   // Verified live 2026-09-22: order-updates & broker-api are EKS-only for RECENT dates (empty on EC2 above). platform-api also live here (dual-running).
-  // S3_URL: `s3://sc-eks-pod-logs/production/${DATE}/integrations/sc-integrations-order-updates-pod/`, //eks production, use for recent dates
+  S3_URL: 's3://sc-eks-pod-logs/production/{date}/integrations/sc-integrations-order-updates-pod/',
   // S3_URL: `s3://sc-eks-pod-logs/production/${DATE}/integrations/sc-integrations-broker-api-pod/`, //eks production, use for recent dates
   // S3_URL: `s3://sc-eks-pod-logs/production/${DATE}/platform/sc-platform-api-pod/`, //eks production (current)
   // S3_URL: `s3://sc-eks-pod-logs/staging/${DATE}/integrations/sc-integrations-order-updates-pod/`, //eks staging
@@ -99,7 +100,7 @@ const DEFAULTS = {
   DATE_TO: DATE_TO || undefined,
   // FROM: `${DATE}T00:00:01`,
   // TO: `${DATE}T24:59:59`,
-  FILTER_TEXT: "sc_rXWoyJfoH", // e.g. 'hdfcsky'
+  FILTER_TEXT: "no records found, axis", // e.g. 'hdfcsky'
   // FILTER_NOT_TEXT: 'dealerId', // exclude lines containing any of these (comma-separated or array)
   // FILTER_FIELD: 'broker=hdfcsky, brokerName=hdfcsky', // string, comma-separated, or array of 'k=v'
   CONCURRENCY: 120,
@@ -119,7 +120,7 @@ function printHelpAndExit(code = 1) {
       '  --bucket <name>            S3 bucket name (required)',
       '  --prefix <path>            S3 prefix to list (optional, default: empty)',
       '  --out <dir>                Output directory for raw logs (required)',
-      '  --region <aws-region>      Ignored. Region is hardcoded to ap-south-1.',
+      '  --region <aws-region>      Override the AWS SDK region resolution',
       '  --concurrency <n>          Parallel downloads (default: 4)',
       '  --raw-field <a,b,c>        Comma-separated field names to try for raw logs (default: raw,message,msg,log)',
       '  --start-after <key>        Start after this key when listing (optional)',
@@ -134,7 +135,9 @@ function printHelpAndExit(code = 1) {
       '  --to <ISO|epochMs>         Filter lines whose JSON "time" <= this',
       '  --ist                      Interpret --from/--to as IST (UTC+05:30)',
       '  --filter-text <a,b>        Substring filter (comma-separated values must ALL match)',
+      '  --no-filter-text           Disable the built-in source text filter',
       '  --whole-word              Match --filter-text values as whole words instead of substrings',
+      '  --select-format compact-jsonl  Opt in only for a source format verified for this case',
       '  --filter-not-text <a,b>    Exclude lines matching ANY of these substrings (comma-separated)',
       '  --filter-field <k=v>       Create an additional filtered copy with lines where JSON field k===v',
       '                              Supports expressions like: key1=val1 and key2=val2 or key3=val3',
@@ -163,10 +166,9 @@ function printHelpAndExit(code = 1) {
       '  - This script writes ONLY a filtered output file per S3 object.',
       '  - If no filters are provided, all lines are included into the filtered file.',
       '  - JSON lines are pretty-printed. Non-JSON lines are wrapped as {"raw": "..."} and pretty-printed.',
-      '  - When --filter-text is given, each object is first queried server-side with S3 Select (only',
-      '    matching lines are transferred, not the whole object) and every other filter/sort still runs',
-      '    locally on that result. Falls back to a full download only if Select fails or no --filter-text',
-      '    was given at all.',
+      '  - Downloads stream locally by default. Verified compact JSONL may opt in to Select.',
+      '    Field alternatives always use local filtering. Select format/completeness failures',
+      '    discard partial candidates and retry the complete object locally.',
     ].join('\n')
   );
   process.exit(code);
@@ -293,18 +295,30 @@ function parseArgs(argv) {
       else console.warn('Ignoring --sort: expected "nf" or "of"');
     } else if (a === '--ci') args.ci = true;
     else if (a === '--whole-word') args.wholeWord = true;
+    else if (a === '--select-format') args.selectFormat = argv[++i];
     else if (a === '--parse-message') args.parseMessage = true;
     else if (a === '--no-filter-text') args.noFilterText = true;
     else if (a === '--no-sort') args.noSort = true;
     else {
-      console.warn(`Unknown argument: ${a}`);
+      throw new ValidationError('Unknown option; run --help for supported flags.');
     }
+  }
+  if (args.selectFormat && args.selectFormat !== COMPACT_JSONL) {
+    throw new ValidationError('--select-format must be compact-jsonl; omit it for local streaming.');
   }
   return args;
 }
 
+function applyDefaultDateRange(args, defaults = DEFAULTS) {
+  if (args.s3Url || args.bucket) return;
+  if (!args.date && !args.dateFrom && !args.dateTo && defaults.DATE_FROM && defaults.DATE_TO) {
+    args.dateFrom = defaults.DATE_FROM;
+    args.dateTo = defaults.DATE_TO;
+  }
+}
+
 function ensureDir(dirPath) {
-  fs.mkdirSync(dirPath, { recursive: true });
+  fs.mkdirSync(dirPath, { recursive: true, mode: PRIVATE_DIR_MODE });
 }
 
 function computeOutputPath(baseDir, key) {
@@ -400,9 +414,11 @@ function parseS3Url(url) {
   if (!trimmed.startsWith('s3://')) return null;
   const withoutScheme = trimmed.slice('s3://'.length);
   const firstSlash = withoutScheme.indexOf('/');
-  if (firstSlash === -1) return { bucket: withoutScheme, prefix: '' };
+  if (firstSlash === -1) return withoutScheme && !/[\s?#@]/.test(withoutScheme) ? { bucket: withoutScheme, prefix: '' } : null;
   const bucket = withoutScheme.slice(0, firstSlash);
+  if (!bucket || /[\s?#@]/.test(bucket)) return null;
   let prefix = withoutScheme.slice(firstSlash + 1);
+  if (/[?#]/.test(prefix)) return null;
   if (prefix && !prefix.endsWith('/')) prefix += '/';
   return { bucket, prefix };
 }
@@ -428,6 +444,14 @@ function parseDateWithIST(input, assumeIST) {
     const d = new Date(ms);
     return Number.isNaN(d.getTime()) ? undefined : d;
   }
+  const calendar = /^(\d{4})-(\d{2})-(\d{2})/.exec(input);
+  if (calendar) {
+    const [year, month, day] = calendar.slice(1).map(Number);
+    const checked = new Date(Date.UTC(year, month - 1, day));
+    if (checked.getUTCFullYear() !== year || checked.getUTCMonth() + 1 !== month || checked.getUTCDate() !== day) {
+      return undefined;
+    }
+  }
   if (!assumeIST) {
     const d = new Date(input);
     return Number.isNaN(d.getTime()) ? undefined : d;
@@ -437,24 +461,22 @@ function parseDateWithIST(input, assumeIST) {
     const d = new Date(input);
     return Number.isNaN(d.getTime()) ? undefined : d;
   }
-  // Parse naive "YYYY-MM-DDTHH:mm[:ss]" as IST and convert to UTC
-  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(input);
+  // Parse timezone-free ISO input as IST without depending on the host timezone.
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,9}))?)?)?$/.exec(input);
   if (m) {
     const year = Number(m[1]);
     const month = Number(m[2]); // 1-12
     const day = Number(m[3]);
-    const hour = Number(m[4]);
-    const minute = Number(m[5]);
+    const hour = m[4] ? Number(m[4]) : 0;
+    const minute = m[5] ? Number(m[5]) : 0;
     const second = m[6] ? Number(m[6]) : 0;
+    const millisecond = m[7] ? Number(m[7].slice(0, 3).padEnd(3, '0')) : 0;
+    if (hour > 23 || minute > 59 || second > 59) return undefined;
     // IST (UTC+05:30) -> UTC
-    const utcMs = Date.UTC(year, month - 1, day, hour - 5, minute - 30, second, 0);
+    const utcMs = Date.UTC(year, month - 1, day, hour - 5, minute - 30, second, millisecond);
     return new Date(utcMs);
   }
-  // Fallback to Date parse then shift (best-effort)
-  const d = new Date(input);
-  if (Number.isNaN(d.getTime())) return undefined;
-  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
-  return new Date(d.getTime() - IST_OFFSET_MS);
+  return undefined;
 }
 
 function parseKeyValue(spec) {
@@ -514,8 +536,8 @@ function tryParseNestedJsonFields(obj, rawFields) {
 }
 
 async function writeRawLogsFromStreamToFile(readable, outFilePath, shouldGunzip) {
-  const outStream = fs.createWriteStream(outFilePath, { flags: 'w' });
-  const source = shouldGunzip ? readable.pipe(zlib.createGunzip()) : readable;
+  const outStream = fs.createWriteStream(outFilePath, { flags: 'w', mode: PRIVATE_FILE_MODE });
+  const source = logInputStream(readable, shouldGunzip);
   await pipe(source, outStream);
 }
 
@@ -539,17 +561,28 @@ async function writeFilteredLogsFromStreamToFile(
 ) {
   return new Promise((resolve, reject) => {
     let outStream;
+    let failed = false;
     let matches = 0;
+    let timeUnverified = 0;
+    const result = () => ({ matched: matches, timeUnverified });
     // When an externalBuffer is provided (global sort), we never write to file here
     const buffer = (sortMode && externalBuffer) ? externalBuffer : (sortMode ? [] : null);
     const createOut = () => {
       if (outStream) return;
-      outStream = fs.createWriteStream(outFilePath, { flags: fileMode });
-      outStream.on('error', reject);
-      outStream.on('finish', () => resolve(matches));
+      outStream = fs.createWriteStream(outFilePath, { flags: fileMode, mode: PRIVATE_FILE_MODE });
+      outStream.on('error', fail);
+      outStream.on('finish', () => resolve(result()));
     };
-    const source = shouldGunzip ? readable.pipe(zlib.createGunzip()) : readable;
+    const source = logInputStream(readable, shouldGunzip);
     const rl = readline.createInterface({ input: source });
+    function fail(error) {
+      if (failed) return;
+      failed = true;
+      reject(error);
+      rl.close();
+      source.destroy();
+      outStream?.destroy();
+    }
     function deepFieldEquals(obj, key, expected) {
       const keyNorm = caseInsensitive ? String(key).toLowerCase() : key;
       const expectedNorm = caseInsensitive ? String(expected).toLowerCase() : String(expected);
@@ -577,20 +610,21 @@ async function writeFilteredLogsFromStreamToFile(
     const hasNotTextFilter = Array.isArray(filterNotTextTerms) && filterNotTextTerms.length > 0;
     rl.on('line', (line) => {
       // Time filter using obj.time (UTC). If from/to are not provided, skip time check.
-      const includeByTime = true;
       const hasTimeFilter = !!fromDate || !!toDate;
       let parsedObj;
+      let unverifiedTime = false;
       if (hasTimeFilter) {
         try {
           parsedObj = JSON.parse(line);
-          const t = parsedObj && parsedObj.time;
-          if (!t) return; // missing time => exclude when time filter requested
-          const tDate = new Date(t);
-          if (Number.isNaN(tDate.getTime())) return;
-          if (fromDate && tDate < fromDate) return;
-          if (toDate && tDate > toDate) return;
+          const timestamp = safeTimestamp(parsedObj?.time);
+          unverifiedTime = !timestamp;
+          if (timestamp) {
+            const eventDate = new Date(timestamp);
+            if (fromDate && eventDate < fromDate) return;
+            if (toDate && eventDate > toDate) return;
+          }
         } catch {
-          return;
+          unverifiedTime = true;
         }
       }
 
@@ -662,7 +696,8 @@ async function writeFilteredLogsFromStreamToFile(
           if (needle && haystackEx.includes(needle)) return;
         }
       }
-      if (!(includeByTime && includeByContent)) return;
+      if (!includeByContent) return;
+      if (unverifiedTime) timeUnverified += 1;
 
       // Buffer or write
       if (buffer) {
@@ -692,12 +727,13 @@ async function writeFilteredLogsFromStreamToFile(
       }
     });
     rl.on('close', () => {
+      if (failed) return;
       if (buffer && externalBuffer) {
         // Items were pushed into the shared externalBuffer; global sort/write happens in run()
-        resolve(matches);
+        resolve(result());
       } else if (buffer) {
         if (buffer.length === 0) {
-          resolve(0);
+          resolve(result());
           return;
         }
         // Sort: invalid times go last
@@ -732,10 +768,10 @@ async function writeFilteredLogsFromStreamToFile(
       } else if (outStream) {
         outStream.end();
       } else {
-        resolve(matches); // no matches -> no file created
+        resolve(result()); // no matches -> no file created
       }
     });
-    rl.on('error', reject);
+    rl.on('error', fail);
   });
 }
 
@@ -754,13 +790,13 @@ function buildTextSelectExpression(filterTextTerms) {
     .map((term) => String(term).trim())
     .filter(Boolean)
     .map((term) => `LOWER(s._1) LIKE ${sqlString(`%${escapeLikeLiteral(term)}%`)} ESCAPE '!'`);
-  return clauses.length ? `SELECT * FROM S3Object s WHERE ${clauses.join(' AND ')}` : null;
+  return clauses.length ? compactJsonSelectExpression(clauses.join(' AND ')) : null;
 }
 
 // Queries the object server-side via S3 Select instead of downloading it whole. Returns the
 // matching lines (possibly empty — a real "no match"), or null if Select can't be used/trusted
 // for this object, meaning the caller should fall back to a full download.
-async function trySelectMatchingLines(s3, bucket, key, filterTextTerms, isGzip) {
+async function trySelectMatchingLines(s3, bucket, key, filterTextTerms, isGzip, objectSize) {
   const expression = buildTextSelectExpression(filterTextTerms);
   if (!expression) return null;
   const response = await s3.send(new SelectObjectContentCommand({
@@ -772,15 +808,8 @@ async function trySelectMatchingLines(s3, bucket, key, filterTextTerms, isGzip) 
     OutputSerialization: { JSON: { RecordDelimiter: '\n' } },
   }));
   const lines = [];
-  let tabCollision = false;
-  const { ended } = await forEachSelectRecord(response.Payload, (record) => {
-    if (record._2 !== undefined && String(record._2).length > 0) {
-      tabCollision = true; // the raw line itself contained a real tab -> CSV hack split it; distrust this object
-      return;
-    }
-    if (typeof record._1 === 'string') lines.push(record._1);
-  });
-  if (!ended || tabCollision) return null;
+  const completion = await forEachSelectRecord(response.Payload, (record) => lines.push(compactJsonLine(record)));
+  validateSelectComplete(completion, objectSize);
   return lines;
 }
 
@@ -802,42 +831,45 @@ async function processObject(
   parseMessage,
   fileMode,
   externalBuffer = null,
-  forceGunzip = false
+  forceGunzip = false,
+  selectFormat,
+  objectSize
 ) {
   ensureDir(path.dirname(aggregatedOutPath));
-  console.log(`Processing s3://${bucket}/${key} -> ${aggregatedOutPath}`);
 
-  if (Array.isArray(filterText) && filterText.length > 0) {
+  const selectEligible = selectFormat === COMPACT_JSONL && filterText?.length &&
+    !filterFieldSpecs?.length && !filterFieldExprClauses?.length;
+  let selectedLines = null;
+  let method = 'local';
+  if (selectEligible) {
+    method = 'fallback';
     try {
       const isGzip = forceGunzip || looksLikeGzipKey(key);
-      const selectedLines = await trySelectMatchingLines(s3, bucket, key, filterText, isGzip);
-      if (selectedLines) {
-        console.log(`  Queried via S3 Select: ${selectedLines.length} candidate line(s) (no full download).`);
-        const matched = await writeFilteredLogsFromStreamToFile(
-          stringToReadable(selectedLines.length ? `${selectedLines.join('\n')}\n` : ''),
-          aggregatedOutPath,
-          false,
-          filterText,
-          filterNotText,
-          filterFieldSpecs,
-          fromDate,
-          toDate,
-          sortMode,
-          caseInsensitive,
-          wholeWord,
-          filterFieldExprClauses,
-          parseMessage,
-          rawFields,
-          fileMode,
-          externalBuffer
-        );
-        if (!matched) {
-          console.log(`No matching lines in s3://${bucket}/${key}; skipping file creation.`);
-        }
-        return;
-      }
-    } catch (err) {
-      console.warn(`  S3 Select query failed for s3://${bucket}/${key} (${err.message || err}); falling back to full download.`);
+      selectedLines = await trySelectMatchingLines(s3, bucket, key, filterText, isGzip, objectSize);
+    } catch {
+      console.warn('S3 Select could not verify the object; trying a full download.');
+    }
+    if (selectedLines) {
+      console.log(`  Queried via S3 Select: ${selectedLines.length} candidate line(s) (no full download).`);
+      const matched = await writeFilteredLogsFromStreamToFile(
+        stringToReadable(selectedLines.length ? `${selectedLines.join('\n')}\n` : ''),
+        aggregatedOutPath,
+        false,
+        filterText,
+        filterNotText,
+        filterFieldSpecs,
+        fromDate,
+        toDate,
+        sortMode,
+        caseInsensitive,
+        wholeWord,
+        filterFieldExprClauses,
+        parseMessage,
+        rawFields,
+        fileMode,
+        externalBuffer
+      );
+      return { ...matched, method: 'select' };
     }
   }
 
@@ -868,9 +900,7 @@ async function processObject(
     fileMode,
     externalBuffer
   );
-  if (!matched) {
-    console.log(`No matching lines in s3://${bucket}/${key}; skipping file creation.`);
-  }
+  return { ...matched, method };
 }
 
 async function listAllObjects({ s3, bucket, prefix, startAfter, maxKeys }) {
@@ -886,7 +916,14 @@ async function listAllObjects({ s3, bucket, prefix, startAfter, maxKeys }) {
     };
     if (continuationToken) params.ContinuationToken = continuationToken;
     if (isFirst && startAfter) params.StartAfter = startAfter;
-    const resp = await s3.send(new ListObjectsV2Command(params));
+    let resp;
+    try {
+      resp = await s3.send(new ListObjectsV2Command(params));
+    } catch {
+      const error = new Error('listing-failed');
+      error.listed = items.length;
+      throw error;
+    }
     const contents = resp.Contents || [];
     for (const item of contents) {
       if (item && item.Key) {
@@ -894,19 +931,28 @@ async function listAllObjects({ s3, bucket, prefix, startAfter, maxKeys }) {
         if (item.Key.endsWith('/')) continue;
         items.push({
           key: item.Key,
+          size: item.Size,
           lastModified: item.LastModified ? new Date(item.LastModified) : undefined,
         });
       }
     }
     if (!resp.IsTruncated) break;
     continuationToken = resp.NextContinuationToken;
+    if (!continuationToken) {
+      const error = new Error('listing-incomplete');
+      error.listed = items.length;
+      throw error;
+    }
     isFirst = false;
   }
   return items;
 }
 
-async function run() {
-  const args = parseArgs(process.argv);
+async function run(argv = process.argv, dependencies = {}) {
+  const args = parseArgs(argv);
+  const explicitSource = Boolean(args.s3Url || args.bucket);
+
+  applyDefaultDateRange(args);
 
   // Apply script-level defaults if not provided via CLI
   // Only fall back to the hardcoded default when the user gave neither --s3-url nor --bucket —
@@ -917,19 +963,15 @@ async function run() {
   if (args.ist === false && DEFAULTS.IST) args.ist = true;
   if (!args.from && DEFAULTS.FROM) args.from = DEFAULTS.FROM;
   if (!args.to && DEFAULTS.TO) args.to = DEFAULTS.TO;
-  if (!args.date && !args.dateFrom && !args.dateTo && DEFAULTS.DATE_FROM && DEFAULTS.DATE_TO) {
-    args.dateFrom = DEFAULTS.DATE_FROM;
-    args.dateTo = DEFAULTS.DATE_TO;
-  }
-  if (!args.noFilterText && (!Array.isArray(args.filterText) || args.filterText.length === 0) && DEFAULTS.FILTER_TEXT) {
+  if (!explicitSource && !args.noFilterText && (!Array.isArray(args.filterText) || args.filterText.length === 0) && DEFAULTS.FILTER_TEXT) {
     const defaults = normalizeFilterText(DEFAULTS.FILTER_TEXT);
     if (defaults) args.filterText = defaults;
   }
-  if ((!Array.isArray(args.filterNotText) || args.filterNotText.length === 0) && DEFAULTS.FILTER_NOT_TEXT) {
+  if (!explicitSource && (!Array.isArray(args.filterNotText) || args.filterNotText.length === 0) && DEFAULTS.FILTER_NOT_TEXT) {
     const defaults = normalizeFilterText(DEFAULTS.FILTER_NOT_TEXT);
     if (defaults) args.filterNotText = defaults;
   }
-  if (args.filterFields.length === 0 && DEFAULTS.FILTER_FIELD) {
+  if (!explicitSource && args.filterFields.length === 0 && DEFAULTS.FILTER_FIELD) {
     const src = DEFAULTS.FILTER_FIELD;
     if (/\s+(and|or)\s+/i.test(String(src))) {
       const clauses = parseFilterExpression(String(src));
@@ -955,43 +997,36 @@ async function run() {
   if (!args.parseMessage && typeof DEFAULTS.PARSE_MESSAGE === 'boolean') {
     args.parseMessage = DEFAULTS.PARSE_MESSAGE;
   }
-  if (!args.dir && DEFAULTS.DIR) {
+  if (!explicitSource && !args.dir && DEFAULTS.DIR) {
     args.dir = DEFAULTS.DIR;
   }
   args.filterText = normalizeFilterText(args.filterText);
+  args.sourceAlias = crypto.randomBytes(SOURCE_ALIAS_BYTES).toString('hex');
 
   if ((!args.s3Url && !args.bucket) || !args.outDir) {
-    console.error('Error: S3 URL/bucket and output directory are required.');
-    process.exit(1);
+    throw new ValidationError('S3 URL/bucket and output directory are required.');
   }
 
-  let dateList;
-  try {
-    dateList = resolveDateList(args);
-  } catch (err) {
-    console.error(`Error: ${err.message}`);
-    process.exit(1);
-  }
+  const dateList = resolveDateList(args);
   const placeholderSource = `${args.s3Url || ''} ${args.bucket || ''} ${args.prefix || ''}`;
   const hasPlaceholder = placeholderSource.includes('{date}');
   if (dateList && !hasPlaceholder) {
-    console.error('Error: --date/--date-from/--date-to given but --s3-url/--bucket/--prefix has no {date} placeholder to substitute.');
-    process.exit(1);
+    throw new ValidationError('--date/--date-from/--date-to requires a {date} placeholder in the source.');
   }
   if (!dateList && hasPlaceholder) {
-    console.error('Error: --s3-url/--bucket/--prefix contains a {date} placeholder; pass --date or --date-from/--date-to.');
-    process.exit(1);
+    throw new ValidationError('Source has a {date} placeholder; pass --date or --date-from/--date-to.');
   }
-
-  const s3 = new S3Client({
-    region: 'ap-south-1',
-  });
 
   const dates = dateList || [null];
+  if (dateList) assertEmptyOutputDir(args.outDir);
+  const s3 = dependencies.s3 || new S3Client(args.region ? { region: args.region } : {});
+  let incomplete = false;
   for (const date of dates) {
     if (date) console.log(`\n=== ${date} ===`);
-    await runForScope(s3, buildScopedArgs(args, date));
+    const result = await runForScope(s3, buildScopedArgs(args, date));
+    if (result.status === 'incomplete') incomplete = true;
   }
+  return incomplete ? 2 : 0;
 }
 
 // Resolves the day(s) to scan: --date wins as a single day, --date-from/--date-to as an inclusive
@@ -1029,7 +1064,51 @@ function buildScopedArgs(args, date) {
     bucket: substitutePlaceholder(args.bucket, date),
     prefix: substitutePlaceholder(args.prefix, date),
     outDir: path.join(args.outDir, date),
+    scopeDate: date,
   };
+}
+
+function validateTimeFilters(args) {
+  const filters = {};
+  for (const [name, flag] of [
+    ['from', '--from'], ['to', '--to'],
+    ['modifiedAfter', '--modified-after'], ['modifiedBefore', '--modified-before'],
+  ]) {
+    if (args[name] === undefined) continue;
+    const parsed = parseDateWithIST(args[name], args.ist);
+    if (!parsed) throw new ValidationError(`Invalid ${flag} timestamp; expected ISO date/time or epoch.`);
+    filters[name] = parsed;
+  }
+  if (filters.from && filters.to && filters.from > filters.to) throw new ValidationError('--from must not be after --to.');
+  if (filters.modifiedAfter && filters.modifiedBefore && filters.modifiedAfter > filters.modifiedBefore) {
+    throw new ValidationError('--modified-after must not be after --modified-before.');
+  }
+  return filters;
+}
+
+function safeManifest(args, filters) {
+  const toIso = (date) => date ? date.toISOString() : null;
+  return {
+    status: 'incomplete',
+    sourceAlias: args.sourceAlias || crypto.randomBytes(SOURCE_ALIAS_BYTES).toString('hex'),
+    date: args.scopeDate || null,
+    lineWindowUTC: { from: toIso(filters.from), to: toIso(filters.to) },
+    modifiedWindowUTC: { from: toIso(filters.modifiedAfter), to: toIso(filters.modifiedBefore) },
+    objects: { listed: 0, selected: 0, scanned: 0, failed: 0 },
+    lines: { matched: 0, timeUnverified: 0 },
+    selectFormat: args.selectFormat || null,
+    methods: { local: 0, select: 0, fallback: 0 },
+  };
+}
+
+function writeManifest(outDir, manifest) {
+  fs.writeFileSync(path.join(outDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, { mode: PRIVATE_FILE_MODE });
+}
+
+function assertEmptyOutputDir(outDir) {
+  if (fs.existsSync(outDir) && (!fs.statSync(outDir).isDirectory() || fs.readdirSync(outDir).length > 0)) {
+    throw new ValidationError('Output directory is not empty; choose a fresh temporary directory.');
+  }
 }
 
 async function runForScope(s3, args) {
@@ -1037,40 +1116,46 @@ async function runForScope(s3, args) {
   if (args.s3Url) {
     const parsed = parseS3Url(args.s3Url);
     if (!parsed) {
-      console.error('Invalid --s3-url. Expected format: s3://bucket/prefix/');
-      process.exit(1);
+      throw new ValidationError('Invalid --s3-url. Expected format: s3://bucket/prefix/');
     }
     args.bucket = parsed.bucket;
     args.prefix = parsed.prefix || '';
   }
 
+  const filters = validateTimeFilters(args);
+  assertEmptyOutputDir(args.outDir);
   ensureDir(args.outDir);
+  const manifest = safeManifest(args, filters);
   const aggregatedOutPath = path.join(args.outDir, 'all-logs.filtered.log');
+  let allItems;
   try {
-    if (fs.existsSync(aggregatedOutPath)) fs.unlinkSync(aggregatedOutPath);
-  } catch (err) {
-    console.warn(`Unable to reset existing aggregated log file: ${err.message || err}`);
+    console.log('Listing selected S3 prefix.');
+    allItems = await listAllObjects({
+      s3,
+      bucket: args.bucket,
+      prefix: args.prefix,
+      startAfter: args.startAfter,
+      maxKeys: args.maxKeys,
+    });
+  } catch (error) {
+    manifest.error = 'listing-failed';
+    manifest.objects.listed = error.listed || 0;
+    writeManifest(args.outDir, manifest);
+    console.error('S3 listing failed; check credentials, access, region, and connectivity.');
+    return manifest;
   }
-
-  console.log(
-    `Listing objects in bucket=${args.bucket} prefix=${args.prefix ? args.prefix : '(none)'} ...`
-  );
-  const allItems = await listAllObjects({
-    s3,
-    bucket: args.bucket,
-    prefix: args.prefix,
-    startAfter: args.startAfter,
-    maxKeys: args.maxKeys,
-  });
+  manifest.objects.listed = allItems.length;
   if (!allItems.length) {
-    console.log('No objects found.');
-    return;
+    manifest.status = 'empty_source';
+    writeManifest(args.outDir, manifest);
+    console.log('No objects listed in the selected S3 prefix.');
+    return manifest;
   }
   // Apply directory + LastModified filters at object level. Time filtering by JSON "time" is done per line.
-  const fromDate = parseDateWithIST(args.from, args.ist);
-  const toDate = parseDateWithIST(args.to, args.ist);
-  const modifiedAfterDate = parseDateWithIST(args.modifiedAfter, args.ist);
-  const modifiedBeforeDate = parseDateWithIST(args.modifiedBefore, args.ist);
+  const fromDate = filters.from;
+  const toDate = filters.to;
+  const modifiedAfterDate = filters.modifiedAfter;
+  const modifiedBeforeDate = filters.modifiedBefore;
   const filtered = allItems.filter((it) => {
     // Directory filter: match first segment under prefix
     if (args.dir) {
@@ -1086,11 +1171,16 @@ async function runForScope(s3, args) {
     }
     return true;
   });
+  manifest.objects.selected = filtered.length;
   if (!filtered.length) {
-    console.log('No objects matched the filters.');
-    return;
+    manifest.status = 'no_objects_after_filters';
+    writeManifest(args.outDir, manifest);
+    console.log('No listed objects passed the object filters.');
+    return manifest;
   }
-  console.log(`Found ${filtered.length} object(s) after filtering. Starting download with concurrency=${args.concurrency} ...`);
+  // ponytail: serialize unsorted writes to one file; use per-object temp outputs if throughput matters.
+  const effectiveConcurrency = args.sort ? args.concurrency : 1;
+  console.log(`Found ${filtered.length} object(s) after filtering. Starting download with concurrency=${effectiveConcurrency} ...`);
   const progressBar = createDownloadProgressBar(filtered.length);
   progressBar.render();
 
@@ -1104,8 +1194,8 @@ async function runForScope(s3, args) {
   let writeCount = 0;
   await new Promise((resolve) => {
     const maybeStartNext = () => {
-      while (inFlight < args.concurrency && idx < filtered.length) {
-        const { key } = filtered[idx++];
+      while (inFlight < effectiveConcurrency && idx < filtered.length) {
+        const { key, size } = filtered[idx++];
         const fileMode = writeCount === 0 ? 'w' : 'a';
         writeCount += 1;
         inFlight += 1;
@@ -1127,11 +1217,20 @@ async function runForScope(s3, args) {
           !!args.parseMessage,
           fileMode,
           globalBuffer,
-          !!args.forceGunzip
+          !!args.forceGunzip,
+          args.selectFormat,
+          size
         )
-          .catch((err) => {
+          .then((result) => {
+            manifest.objects.scanned += 1;
+            manifest.lines.matched += result.matched;
+            manifest.lines.timeUnverified += result.timeUnverified;
+            manifest.methods[result.method] += 1;
+          })
+          .catch(() => {
             failed += 1;
-            console.error(`Failed for key=${key}:`, err && err.message ? err.message : err);
+            manifest.objects.failed += 1;
+            console.error('S3 object scan failed; source details withheld.');
           })
           .finally(() => {
             inFlight -= 1;
@@ -1157,7 +1256,7 @@ async function runForScope(s3, args) {
       return a.idx - b.idx;
     });
     if (globalBuffer.length > 0) {
-      const outStream = fs.createWriteStream(aggregatedOutPath, { flags: 'w' });
+      const outStream = fs.createWriteStream(aggregatedOutPath, { flags: 'w', mode: PRIVATE_FILE_MODE });
       for (const item of globalBuffer) {
         try {
           if (item.obj) {
@@ -1178,29 +1277,38 @@ async function runForScope(s3, args) {
     }
   }
 
-  console.log(`Aggregated filtered logs stored at ${aggregatedOutPath}`);
-
-  if (failed > 0) {
-    console.log(`Completed with ${failed} failure(s).`);
+  if (failed > 0 || manifest.lines.timeUnverified) {
+    manifest.status = 'incomplete';
+    console.log(`Incomplete: ${failed} object scan(s) failed; ${manifest.lines.timeUnverified} candidate timestamp(s) unverified.`);
   } else {
+    manifest.status = 'complete';
     console.log('Completed successfully.');
   }
+  writeManifest(args.outDir, manifest);
+  return manifest;
 }
 
 if (require.main === module) {
-  run().catch((err) => {
-    console.error(err);
-    process.exit(1);
-  });
+  run()
+    .then((code) => { process.exitCode = code; })
+    .catch((err) => {
+      const message = err instanceof ValidationError
+        ? (/^Invalid (calendar )?date:/.test(err.message) ? 'Invalid date. Expected YYYY-MM-DD.' : err.message)
+        : 'Log fetch failed; check the local output directory and selected source.';
+      console.error(message);
+      process.exitCode = 1;
+    });
 }
 
 module.exports = {
+  applyDefaultDateRange,
   buildScopedArgs,
   buildTextSelectExpression,
   parseArgs,
+  parseS3Url,
   resolveDateList,
+  run,
+  runForScope,
   substitutePlaceholder,
   trySelectMatchingLines,
 };
-
-

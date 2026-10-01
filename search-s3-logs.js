@@ -8,23 +8,24 @@ const os = require('os');
 const path = require('path');
 const readline = require('readline');
 const { StringDecoder } = require('string_decoder');
-const zlib = require('zlib');
 const {
   GetObjectCommand,
   S3Client,
   SelectObjectContentCommand,
 } = require('@aws-sdk/client-s3');
 const {
+  COMPACT_JSONL,
+  compactJsonLine,
+  compactJsonSelectExpression,
   forEachConcurrent,
   listCommonPrefixes,
   listObjects,
+  logInputStream,
   mapConcurrent,
+  validateSelectComplete,
   writeJson,
 } = require('./s3-search-utils');
-
-process.env.AWS_PROFILE = process.env.AWS_PROFILE || 'smallcase';
-process.env.AWS_SDK_LOAD_CONFIG = '1';
-process.env.AWS_REGION = process.env.AWS_REGION || 'ap-south-1';
+const { exactMatchPaths, hashRef, loadEvidenceOptions, projectEvidence, safeError, safeTimestamp } = require('./safe-evidence');
 
 const DEFAULT_CONCURRENCY = 16;
 const MAX_CONCURRENCY = 50;
@@ -67,6 +68,7 @@ const APP_SERVICES = {
 const SERVICE_KEYS = [...Object.keys(APP_SERVICES), 'jobs-recon'];
 const RAW_LINE_CSV = {
   FileHeaderInfo: 'NONE',
+  Comments: '\r',
   RecordDelimiter: '\n',
   FieldDelimiter: '\t',
   QuoteCharacter: '\r',
@@ -74,7 +76,6 @@ const RAW_LINE_CSV = {
 };
 
 class ValidationError extends Error {}
-class SelectFallbackError extends Error {}
 
 function help() {
   console.log([
@@ -105,8 +106,11 @@ function help() {
     'Options:',
     '  --job-name <name>      Required for jobs-recon',
     '  --env <prod|staging>   Default: prod',
-    '  --out <dir>            Default: ./logs/lookup-<kind>-<timestamp>',
+    '  --out <dir>            Empty output directory (default: ./logs/lookup-<kind>-<timestamp>)',
     `  --concurrency <n>      Default: ${DEFAULT_CONCURRENCY}; maximum: ${MAX_CONCURRENCY}`,
+    '  --validated-enums <file>  Source-derived event/status/code allowlist for safe evidence',
+    '  --evidence-spec <file>    Reviewed source-derived evidence field mappings',
+    '  --select-format compact-jsonl  Opt in only after verifying every source format for this case',
     '  --help',
   ].join('\n'));
 }
@@ -131,6 +135,9 @@ function parseArgs(argv) {
     else if (option === '--env') args.env = value;
     else if (option === '--out') args.out = value;
     else if (option === '--concurrency') args.concurrency = Number(value);
+    else if (option === '--validated-enums') args.validatedEnumsPath = value;
+    else if (option === '--evidence-spec') args.evidenceSpecPath = value;
+    else if (option === '--select-format') args.selectFormat = value;
     else throw new ValidationError(`Unknown option: ${option}`);
     index += 1;
   }
@@ -138,6 +145,9 @@ function parseArgs(argv) {
 }
 
 function validateArgs(args) {
+  if (args.selectFormat && args.selectFormat !== COMPACT_JSONL) {
+    throw new ValidationError('--select-format must be compact-jsonl; omit it for local streaming.');
+  }
   const identifiers = ['tag', 'orderId', 'batchId', 'text'].filter((key) => args[key]);
   if (identifiers.length !== 1) {
     throw new ValidationError('Pass exactly one of --tag, --order-id, --batch-id, or --text.');
@@ -155,6 +165,7 @@ function validateArgs(args) {
   if (args.services.includes('jobs-recon') && !args.jobName) {
     throw new ValidationError('--service jobs-recon requires --job-name.');
   }
+  buildSources(args.services, args.env, args.jobName);
   args.query = { kind: identifiers[0], value: args[identifiers[0]] };
   args.dateScope = args.date || args.month || args.from ? 'explicit' : `latest-${DEFAULT_SEARCH_DAYS}-days`;
   args.dates = buildDateList(args);
@@ -254,10 +265,13 @@ function datesAroundAnchor(anchor, daysBack, daysForward) {
 function buildSources(services, env, jobName) {
   const sources = [];
   for (const service of services) {
+    if (env !== 'prod' && (service === 'jobs' || service === 'jobs-recon')) {
+      throw new ValidationError(`${service} has no configured ${env} log source.`);
+    }
     if (service === 'jobs-recon') {
       sources.push({
         service,
-        surface: `${service}/${jobName}`,
+        surface: 'jobs-recon/per-run',
         bucket: 'sc-prod-logs',
         dated: false,
         prefix: `sc-integrations-jobs/${jobName}`,
@@ -291,6 +305,7 @@ function buildSources(services, env, jobName) {
       }
     }
   }
+  if (!sources.length) throw new ValidationError(`No configured log sources for ${env}.`);
   return sources;
 }
 
@@ -308,26 +323,50 @@ async function datesForSource(s3, source, cache) {
   return cache.get(cacheKey);
 }
 
-async function listSourceObjects(s3, source, dates, concurrency, dateCache) {
-  if (!source.dated) {
-    const objects = await listObjects(s3, { bucket: source.bucket, prefix: source.prefix });
-    return objects.map((object) => ({ ...object, source }));
-  }
-  const datesToList = dates || await datesForSource(s3, source, dateCache);
-  const listed = await mapConcurrent(datesToList, Math.min(concurrency, 16), async (date) => {
-    const prefix = source.prefixForDate(date);
+async function listScopeObjects(s3, source, prefix, date) {
+  const coverage = {
+    surface: source.surface, bucket: source.bucket, date,
+    prefixRef: hashRef(`s3://${source.bucket}/${prefix}`),
+    listedObjects: 0, scannedObjects: 0, failedObjects: 0,
+  };
+  try {
     const objects = await listObjects(s3, { bucket: source.bucket, prefix });
-    return objects.map((object) => ({ ...object, date, source }));
-  });
-  return listed.flat();
+    coverage.listedObjects = objects.length;
+    return { coverage, objects: objects.map((object) => ({ ...object, source, date, coverage })) };
+  } catch (error) {
+    coverage.status = 'listing_failed';
+    coverage.error = safeError(error);
+    return { coverage, objects: [] };
+  }
 }
 
-async function discoverObjects(s3, sources, dates, concurrency) {
+async function listSourceObjects(s3, source, dates, concurrency, dateCache) {
+  if (!source.dated) return [await listScopeObjects(s3, source, source.prefix, null)];
+  let datesToList;
+  try {
+    datesToList = dates || await datesForSource(s3, source, dateCache);
+  } catch (error) {
+    return [{ coverage: {
+      surface: source.surface, bucket: source.bucket, date: null,
+      prefixRef: hashRef(`s3://${source.bucket}/${source.dateRoot}`),
+      listedObjects: 0, scannedObjects: 0, failedObjects: 0,
+      status: 'listing_failed', error: safeError(error),
+    }, objects: [] }];
+  }
+  return mapConcurrent(datesToList, Math.min(concurrency, 16), (date) =>
+    listScopeObjects(s3, source, source.prefixForDate(date), date));
+}
+
+async function discoverObjects(s3, sources, dates, concurrency, coverage = []) {
   const dateCache = new Map();
   const listed = [];
   for (const source of sources) {
     console.log(`Listing ${source.surface}${dates ? ` for ${dates.length} date(s)` : ' for complete history'}...`);
-    listed.push(...await listSourceObjects(s3, source, dates, concurrency, dateCache));
+    const scopes = await listSourceObjects(s3, source, dates, concurrency, dateCache);
+    for (const scope of scopes) {
+      coverage.push(scope.coverage);
+      listed.push(...scope.objects);
+    }
   }
   const unique = new Map();
   for (const object of listed) unique.set(`${object.bucket}/${object.key}`, object);
@@ -344,7 +383,7 @@ function sqlString(value) {
 
 function buildSelectExpression(value) {
   const pattern = sqlString(`%${escapeLikeLiteral(value)}%`);
-  return `SELECT * FROM S3Object s WHERE LOWER(s._1) LIKE ${pattern} ESCAPE '!' OR CHAR_LENGTH(s._2) > 0`;
+  return compactJsonSelectExpression(`LOWER(s._1) LIKE ${pattern} ESCAPE '!'`);
 }
 
 function isGzipObject(object) {
@@ -365,8 +404,8 @@ class BufferedFileWriter {
   }
 
   static async create(filePath) {
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    return new BufferedFileWriter(filePath, await fs.promises.open(filePath, 'w'));
+    fs.mkdirSync(path.dirname(filePath), { recursive: true, mode: 0o700 });
+    return new BufferedFileWriter(filePath, await fs.promises.open(filePath, 'wx', 0o600));
   }
 
   async write(value) {
@@ -392,7 +431,7 @@ class BufferedFileWriter {
 function lineTime(line) {
   try {
     const parsed = JSON.parse(line);
-    return parsed.time || null;
+    return safeTimestamp(parsed.time) || null;
   } catch {
     return null;
   }
@@ -407,20 +446,14 @@ function istDate(timestamp) {
 function lineIsInScope(line, object, dateSet) {
   if (!object.source.filterLineDate || !dateSet) return true;
   const timestamp = lineTime(line);
-  if (timestamp) return dateSet.has(istDate(timestamp));
-  if (!object.lastModified) return false;
-  return dateSet.has(istDate(object.lastModified));
+  return timestamp === null || dateSet.has(istDate(timestamp));
 }
 
 async function writeSelectedRecord(recordText, writer, state, object, needle, dateSet) {
   if (!recordText.trim()) return;
   const record = JSON.parse(recordText);
-  if (record._2 !== undefined && String(record._2).length > 0) {
-    state.tabCollision = true;
-    return;
-  }
-  const line = record._1;
-  if (typeof line !== 'string' || !line.toLowerCase().includes(needle)) return;
+  const line = compactJsonLine(record);
+  if (!line.toLowerCase().includes(needle)) return;
   if (!lineIsInScope(line, object, dateSet)) return;
   await writer.write(`${line}\n`);
   state.lineCount += 1;
@@ -441,7 +474,7 @@ async function selectObject(s3, object, searchValue, dateSet, matchPath) {
 
   const writer = await BufferedFileWriter.create(matchPath);
   const decoder = new StringDecoder('utf8');
-  const state = { ended: false, lineCount: 0, stats: null, tabCollision: false };
+  const state = { ended: false, lineCount: 0, stats: null };
   let pending = '';
   try {
     for await (const event of response.Payload || []) {
@@ -463,32 +496,30 @@ async function selectObject(s3, object, searchValue, dateSet, matchPath) {
     await writer.close();
   }
 
-  const scanned = Number(state.stats?.BytesScanned);
-  if (!state.ended || !state.stats || (Number.isFinite(object.size) && scanned < object.size)) {
-    throw new SelectFallbackError('S3 Select response was incomplete.');
-  }
-  if (state.tabCollision) {
-    throw new SelectFallbackError('Unexpected tab-delimited record detected.');
-  }
+  validateSelectComplete(state, object.size);
   return { lineCount: state.lineCount, stats: state.stats };
 }
 
 async function localScanObject(s3, object, searchValue, dateSet, matchPath) {
-  const response = await s3.send(new GetObjectCommand({ Bucket: object.bucket, Key: object.key }));
   const writer = await BufferedFileWriter.create(matchPath);
-  const gzipHeader = [response.ContentEncoding, response.ContentType]
-    .filter(Boolean).join(' ').toLowerCase().includes('gzip');
-  const input = isGzipObject(object) || gzipHeader ? response.Body.pipe(zlib.createGunzip()) : response.Body;
-  const reader = readline.createInterface({ input, crlfDelay: Infinity });
   const needle = searchValue.toLowerCase();
+  let input;
+  let reader;
   let lineCount = 0;
   try {
+    const response = await s3.send(new GetObjectCommand({ Bucket: object.bucket, Key: object.key }));
+    const gzipHeader = [response.ContentEncoding, response.ContentType]
+      .filter(Boolean).join(' ').toLowerCase().includes('gzip');
+    input = logInputStream(response.Body, isGzipObject(object) || gzipHeader);
+    reader = readline.createInterface({ input, crlfDelay: Infinity });
     for await (const line of reader) {
       if (!line.toLowerCase().includes(needle) || !lineIsInScope(line, object, dateSet)) continue;
       await writer.write(`${line}\n`);
       lineCount += 1;
     }
   } finally {
+    reader?.close();
+    input?.destroy();
     await writer.close();
   }
   return lineCount;
@@ -512,7 +543,7 @@ function linesFromFile(filePath) {
   return content ? content.replace(/\n$/, '').split('\n') : [];
 }
 
-async function scanObject(s3, object, searchValue, dateSet, requestedMatchPath) {
+async function scanObject(s3, object, searchValue, dateSet, requestedMatchPath, selectFormat) {
   const ownDirectory = requestedMatchPath ? null : fs.mkdtempSync(path.join(os.tmpdir(), 's3-log-scan-'));
   const matchPath = requestedMatchPath || path.join(ownDirectory, 'matches.jsonl');
   const finish = (result) => {
@@ -522,11 +553,11 @@ async function scanObject(s3, object, searchValue, dateSet, requestedMatchPath) 
     delete withLines.matchPath;
     return withLines;
   };
-  const fallback = async (reason) => {
+  const local = async (selectError) => {
     removeFile(matchPath);
     try {
       const lineCount = await localScanObject(s3, object, searchValue, dateSet, matchPath);
-      return finish({ object, method: 'fallback', matchPath, lineCount, selectError: reason });
+      return finish({ object, method: selectError ? 'fallback' : 'local', matchPath, lineCount, selectError });
     } catch (fallbackError) {
       removeFile(matchPath);
       if (ownDirectory) fs.rmSync(ownDirectory, { recursive: true, force: true });
@@ -534,21 +565,17 @@ async function scanObject(s3, object, searchValue, dateSet, requestedMatchPath) 
         object,
         method: 'failed',
         fatal: isAuthError(fallbackError),
-        error: `${reason}; GetObject fallback: ${fallbackError.message}`,
+        error: fallbackError,
       };
     }
   };
 
+  if (selectFormat !== COMPACT_JSONL) return local();
   try {
     const selected = await selectObject(s3, object, searchValue, dateSet, matchPath);
     return finish({ object, method: 'select', matchPath, lineCount: selected.lineCount, stats: selected.stats });
   } catch (selectError) {
-    if (isAuthError(selectError)) {
-      removeFile(matchPath);
-      if (ownDirectory) fs.rmSync(ownDirectory, { recursive: true, force: true });
-      return { object, method: 'failed', fatal: true, error: `S3 Select: ${selectError.message}` };
-    }
-    return fallback(`S3 Select: ${selectError.message}`);
+    return local(selectError);
   }
 }
 
@@ -571,31 +598,44 @@ function matchEntry(result, line) {
     surface: result.object.source.surface,
     objectLastModified: result.object.lastModified?.toISOString() || null,
     time: lineTime(line),
+    ...(result.object.source.filterLineDate ? { timeStatus: lineTime(line) === null ? 'unverified' : 'verified' } : {}),
     log: parseLog(line),
   };
 }
 
 function writeMatches(outputDir, matches) {
-  fs.mkdirSync(outputDir, { recursive: true });
+  fs.mkdirSync(outputDir, { recursive: true, mode: 0o700 });
   const jsonl = matches.map((match) => JSON.stringify(match)).join('\n');
-  fs.writeFileSync(path.join(outputDir, 'matches.jsonl'), jsonl ? `${jsonl}\n` : '');
+  fs.writeFileSync(path.join(outputDir, 'matches.jsonl'), jsonl ? `${jsonl}\n` : '', { mode: 0o600 });
+  const safeJsonl = matches.map((match) => JSON.stringify(projectEvidence(match, { sourceAlias: match.service }))).join('\n');
+  fs.writeFileSync(path.join(outputDir, 'safe-matches.jsonl'), safeJsonl ? `${safeJsonl}\n` : '', { mode: 0o600 });
   const compatible = matches.map((match) => `${JSON.stringify(match.log, null, 2)},`).join('\n');
-  fs.writeFileSync(path.join(outputDir, 'all-logs.filtered.log'), compatible ? `${compatible}\n` : '');
+  fs.writeFileSync(path.join(outputDir, 'all-logs.filtered.log'), compatible ? `${compatible}\n` : '', { mode: 0o600 });
 }
 
-async function appendMatchFile(result, matchesWriter, compatibleWriter) {
+async function appendMatchFile(result, matchesWriter, safeWriter, compatibleWriter, searchValue, evidenceOptions) {
   const reader = readline.createInterface({
     input: fs.createReadStream(result.matchPath),
     crlfDelay: Infinity,
   });
   let count = 0;
+  let timeUnverified = 0;
   for await (const line of reader) {
     const match = matchEntry(result, line);
     await matchesWriter.write(`${JSON.stringify(match)}\n`);
+    const safeMatch = projectEvidence(match, { ...evidenceOptions, sourceAlias: match.service, queryValue: searchValue });
+    if (match.timeStatus) safeMatch.timeStatus = match.timeStatus;
+    if (match.timeStatus === 'unverified') timeUnverified += 1;
+    if (!evidenceOptions.evidenceSpec) {
+      const paths = exactMatchPaths(match, searchValue);
+      if (paths.length) safeMatch.exactMatchPaths = paths;
+      else safeMatch.correlation = 'substring-candidate';
+    }
+    await safeWriter.write(`${JSON.stringify(safeMatch)}\n`);
     await compatibleWriter.write(`${JSON.stringify(match.log, null, 2)},\n`);
     count += 1;
   }
-  return count;
+  return { count, timeUnverified };
 }
 
 function addManifestError(manifest, error) {
@@ -603,50 +643,71 @@ function addManifestError(manifest, error) {
   else manifest.errorDetailsTruncated = true;
 }
 
-function createManifest(args, sources, outputDir) {
+function createManifest(args, sources) {
   return {
     status: 'running',
     snapshotStartedAt: new Date().toISOString(),
     completedAt: null,
-    outputDir,
-    query: { ...args.query, caseInsensitive: true, literal: true },
+    query: { kind: args.query.kind, caseInsensitive: true, literal: true },
+    selectFormat: args.selectFormat || null,
     scope: {
       services: args.services,
       environment: args.env,
       dateScope: args.dateScope,
       dates: args.dates,
-      jobName: args.jobName || null,
     },
-    sources: sources.map(({ surface, bucket, dateRoot, prefix }) => ({ surface, bucket, root: dateRoot || prefix })),
-    objects: { listed: 0, scanned: 0, selected: 0, fallback: 0, failed: 0, matched: 0 },
-    lines: { matched: 0 },
+    ...(args.anchorLookup ? { anchorLookup: args.anchorLookup } : {}),
+    sources: sources.map(({ surface, bucket, dateRoot, prefix }) => ({
+      surface, bucket, rootRef: hashRef(`s3://${bucket}/${dateRoot || prefix}`),
+    })),
+    coverage: [],
+    objects: { listed: 0, scanned: 0, selected: 0, local: 0, fallback: 0, failed: 0, matched: 0 },
+    lines: { matched: 0, timeUnverified: 0 },
     bytes: { scanned: 0, processed: 0, returned: 0, fallbackDownloaded: 0 },
-    matchedKeys: [],
+    matchedObjectRefs: [],
     fallbacks: [],
     errors: [],
   };
 }
 
+function prepareOutputDir(outputDir) {
+  if (fs.existsSync(outputDir)) {
+    if (!fs.statSync(outputDir).isDirectory() || fs.readdirSync(outputDir).length) {
+      throw new ValidationError('--out must be an empty directory.');
+    }
+    if (fs.statSync(outputDir).mode & 0o077) throw new ValidationError('--out must be a private directory.');
+  } else fs.mkdirSync(outputDir, { recursive: true, mode: 0o700 });
+}
+
 async function runSearch(args, dependencies = {}) {
   const outputDir = path.resolve(args.out || path.join(__dirname, 'logs', `lookup-${args.query.kind}-${Date.now()}`));
   const sources = buildSources(args.services, args.env, args.jobName);
-  const manifest = createManifest(args, sources, outputDir);
-  const s3 = dependencies.s3 || new S3Client({ region: process.env.AWS_REGION, maxAttempts: 5 });
-  fs.mkdirSync(outputDir, { recursive: true });
+  const evidenceOptions = loadEvidenceOptions(args);
+  prepareOutputDir(outputDir);
+  const manifest = createManifest(args, sources);
+  const s3 = dependencies.s3 || new S3Client({ maxAttempts: 5 });
 
   let objects;
   try {
-    objects = await discoverObjects(s3, sources, args.dates, args.concurrency);
+    objects = await discoverObjects(s3, sources, args.dates, args.concurrency, manifest.coverage);
   } catch (error) {
     manifest.status = 'incomplete';
     manifest.completedAt = new Date().toISOString();
-    addManifestError(manifest, { phase: 'listing', error: error.message });
+    addManifestError(manifest, { phase: 'listing', error: safeError(error) });
     writeMatches(outputDir, []);
     writeJson(path.join(outputDir, 'manifest.json'), manifest);
-    console.error(`Listing failed: ${error.message}`);
+    console.error(`Listing failed: ${safeError(error)}`);
     return 2;
   }
 
+  for (const scope of manifest.coverage) {
+    if (scope.status === 'listing_failed') {
+      addManifestError(manifest, {
+        phase: 'listing', surface: scope.surface, date: scope.date,
+        prefixRef: scope.prefixRef, error: scope.error,
+      });
+    }
+  }
   manifest.objects.listed = objects.length;
   console.log(`Searching ${objects.length.toLocaleString()} object(s) with concurrency=${args.concurrency}...`);
   const dateSet = args.dates ? new Set(args.dates) : null;
@@ -655,55 +716,68 @@ async function runSearch(args, dependencies = {}) {
   let fatalError;
   const temporaryDirectory = path.join(outputDir, '.scan-tmp');
   fs.rmSync(temporaryDirectory, { recursive: true, force: true });
-  fs.mkdirSync(temporaryDirectory, { recursive: true });
+  fs.mkdirSync(temporaryDirectory, { recursive: true, mode: 0o700 });
   const matchesWriter = await BufferedFileWriter.create(path.join(outputDir, 'matches.jsonl'));
+  const safeWriter = await BufferedFileWriter.create(path.join(outputDir, 'safe-matches.jsonl'));
   const compatibleWriter = await BufferedFileWriter.create(path.join(outputDir, 'all-logs.filtered.log'));
   let outputQueue = Promise.resolve();
   let outputError;
 
   const recordResult = async (result) => {
     const s3Uri = `s3://${result.object.bucket}/${result.object.key}`;
+    const objectRef = hashRef(s3Uri);
+    const coverage = result.object.coverage;
     if (result.method === 'failed' || result.method === 'skipped') {
       manifest.objects.failed += 1;
-      addManifestError(manifest, { s3Uri, error: result.error });
+      coverage.failedObjects += 1;
+      addManifestError(manifest, { phase: 'scan', objectRef, error: safeError(result.error) });
       return;
     }
     let written;
     try {
-      written = await appendMatchFile(result, matchesWriter, compatibleWriter);
+      const appended = await appendMatchFile(result, matchesWriter, safeWriter, compatibleWriter, args.query.value, evidenceOptions);
+      written = appended.count;
+      manifest.lines.timeUnverified += appended.timeUnverified;
+      coverage.timeUnverified = (coverage.timeUnverified || 0) + appended.timeUnverified;
       if (written !== result.lineCount) throw new Error(`Expected ${result.lineCount} matches but wrote ${written}.`);
     } catch (error) {
       outputError = error;
-      fatalError = `Output write failed: ${error.message}`;
+      fatalError = error;
       manifest.objects.failed += 1;
-      addManifestError(manifest, { s3Uri, error: fatalError });
+      coverage.failedObjects += 1;
+      addManifestError(manifest, { phase: 'output', objectRef, error: safeError(error) });
       return;
     }
     manifest.objects.scanned += 1;
+    coverage.scannedObjects += 1;
     if (result.method === 'select') {
       manifest.objects.selected += 1;
       manifest.bytes.scanned += Number(result.stats.BytesScanned) || 0;
       manifest.bytes.processed += Number(result.stats.BytesProcessed) || 0;
       manifest.bytes.returned += Number(result.stats.BytesReturned) || 0;
-    } else {
+    } else if (result.method === 'fallback') {
       manifest.objects.fallback += 1;
       manifest.bytes.fallbackDownloaded += Number(result.object.size) || 0;
-      if (manifest.fallbacks.length < 100) manifest.fallbacks.push({ s3Uri, reason: result.selectError });
+      if (manifest.fallbacks.length < 100) {
+        manifest.fallbacks.push({ objectRef, reason: safeError(result.selectError) });
+      }
+    } else {
+      manifest.objects.local += 1;
     }
-    if (written) matchedKeys.add(s3Uri);
+    if (written) matchedKeys.add(objectRef);
     manifest.lines.matched += written;
   };
 
   await forEachConcurrent(objects, args.concurrency, async (object, index) => {
     let result;
     if (fatalError) {
-      result = { object, method: 'skipped', error: `Skipped after fatal error: ${fatalError}` };
+      result = { object, method: 'skipped', error: fatalError };
     } else {
       const matchPath = path.join(temporaryDirectory, `${index}.jsonl`);
       try {
-        result = await scanObject(s3, object, args.query.value, dateSet, matchPath);
+        result = await scanObject(s3, object, args.query.value, dateSet, matchPath, args.selectFormat);
       } catch (error) {
-        result = { object, method: 'failed', fatal: isAuthError(error), error: error.message };
+        result = { object, method: 'failed', fatal: isAuthError(error), error };
       }
       if (result.fatal) fatalError = result.error;
     }
@@ -717,19 +791,25 @@ async function runSearch(args, dependencies = {}) {
     }
   });
   await outputQueue;
-  const closeResults = await Promise.allSettled([matchesWriter.close(), compatibleWriter.close()]);
+  const closeResults = await Promise.allSettled([matchesWriter.close(), safeWriter.close(), compatibleWriter.close()]);
   for (const closeResult of closeResults) {
     if (closeResult.status !== 'rejected') continue;
     outputError = closeResult.reason;
-    addManifestError(manifest, { phase: 'output', error: closeResult.reason.message });
+    addManifestError(manifest, { phase: 'output', error: safeError(closeResult.reason) });
   }
   fs.rmSync(temporaryDirectory, { recursive: true, force: true });
 
   manifest.objects.matched = matchedKeys.size;
-  manifest.matchedKeys = [...matchedKeys].sort();
+  manifest.matchedObjectRefs = [...matchedKeys].sort();
+  for (const scope of manifest.coverage) {
+    if (scope.status === 'listing_failed') continue;
+    scope.status = scope.failedObjects || scope.timeUnverified ? 'incomplete' : scope.listedObjects ? 'complete' : 'no_objects';
+  }
   manifest.fallbackDetailsTruncated = manifest.objects.fallback > manifest.fallbacks.length;
   manifest.completedAt = new Date().toISOString();
-  manifest.status = manifest.objects.scanned === manifest.objects.listed && !outputError ? 'complete' : 'incomplete';
+  manifest.status = manifest.coverage.some((scope) => scope.status === 'listing_failed') ||
+    manifest.objects.scanned !== manifest.objects.listed || outputError || manifest.lines.timeUnverified ? 'incomplete' :
+    manifest.objects.listed ? 'complete' : 'no_objects';
   writeJson(path.join(outputDir, 'manifest.json'), manifest);
 
   console.log(JSON.stringify({
@@ -740,7 +820,6 @@ async function runSearch(args, dependencies = {}) {
     failedObjects: manifest.objects.failed,
     matchedObjects: manifest.objects.matched,
     matchedLines: manifest.lines.matched,
-    outputDir,
   }, null, 2));
   return manifest.status === 'complete' ? 0 : 2;
 }
@@ -749,7 +828,7 @@ function mergeJsonlInto(targetPath, sourcePath) {
   if (!fs.existsSync(sourcePath)) return;
   const content = fs.readFileSync(sourcePath, 'utf8');
   if (!content) return;
-  fs.appendFileSync(targetPath, content);
+  fs.appendFileSync(targetPath, content, { mode: 0o600 });
 }
 
 // Resolve an anchor Date with zero S3/Redash cost for --batch-id (ObjectId-embedded timestamp),
@@ -774,23 +853,24 @@ async function resolveAnchorDate(args, dependencies) {
       lastReason = 'redash-lookup-invalid-date';
       break;
     }
-    lastReason = lookup.reason || lastReason;
+    if (lookup.reason === 'ambiguous') return { anchor: null, note: 'ambiguous' };
+    lastReason = lookup.reason === 'not-found-in-lookback-window' ? lookup.reason : 'redash-unavailable';
   }
   return { anchor: null, note: lastReason };
 }
 
 async function runAutoSearch(args, dependencies = {}) {
   const outputDir = path.resolve(args.out || path.join(__dirname, 'logs', `lookup-${args.query.kind}-${Date.now()}`));
+  prepareOutputDir(outputDir);
   const { anchor, note } = await resolveAnchorDate(args, dependencies);
 
   if (!anchor) {
-    if (note === 'not-found-in-lookback-window') {
-      fs.mkdirSync(outputDir, { recursive: true });
+    if (note === 'not-found-in-lookback-window' || note === 'ambiguous') {
       const manifest = {
-        status: 'not_found_in_db',
-        query: args.query,
-        note: `No matching order found via Redash within the last ${REDASH_LOOKBACK_TIERS_DAYS[REDASH_LOOKBACK_TIERS_DAYS.length - 1]} days. Not scanning S3 ` +
-          'blindly on a guess — if you know this is older, pass an explicit --date/--from+--to/--month.',
+        status: note === 'ambiguous' ? 'ambiguous_anchor' : 'not_found_in_db',
+        query: { kind: args.query.kind },
+        note: note === 'ambiguous' ? 'Multiple anchor dates found; pass an explicit date or batchId.' :
+          `No matching order found via Redash within the last ${REDASH_LOOKBACK_TIERS_DAYS[REDASH_LOOKBACK_TIERS_DAYS.length - 1]} days. Pass an explicit date or batchId for older orders.`,
         completedAt: new Date().toISOString(),
       };
       writeJson(path.join(outputDir, 'manifest.json'), manifest);
@@ -800,7 +880,7 @@ async function runAutoSearch(args, dependencies = {}) {
     // redash unreachable/unconfigured, or a malformed batch-id: fall back to the flat default
     // window (identical to the pre-auto-scope behavior) rather than failing outright.
     console.log(`No anchor date available (${note}); falling back to the flat latest-${DEFAULT_SEARCH_DAYS}-days window.`);
-    return runSearch(args, dependencies);
+    return runSearch({ ...args, anchorLookup: { status: 'unavailable', reason: note } }, dependencies);
   }
 
   console.log(`Anchor date resolved: ${formatDate(anchor)} (${note}). Starting narrow, widening only if empty...`);
@@ -821,13 +901,24 @@ async function runAutoSearch(args, dependencies = {}) {
     const tierDir = path.join(outputDir, `.tier-${tierIndex}`);
     console.log(`[${tier.label}] searching ${newDates.length} new date(s): ${newDates[0]}..${newDates[newDates.length - 1]}`);
     const tierArgs = { ...args, dates: newDates, out: tierDir };
-    finalExitCode = await runSearch(tierArgs, dependencies);
+    const tierExitCode = await runSearch(tierArgs, dependencies);
+    if (tierExitCode !== 0) finalExitCode = 2;
     const tierManifest = JSON.parse(fs.readFileSync(path.join(tierDir, 'manifest.json'), 'utf8'));
 
     mergeJsonlInto(path.join(outputDir, 'matches.jsonl'), path.join(tierDir, 'matches.jsonl'));
+    mergeJsonlInto(path.join(outputDir, 'safe-matches.jsonl'), path.join(tierDir, 'safe-matches.jsonl'));
     mergeJsonlInto(path.join(outputDir, 'all-logs.filtered.log'), path.join(tierDir, 'all-logs.filtered.log'));
     matchedSoFar += tierManifest.objects?.matched || 0;
-    tierSummaries.push({ ...tier, newDates, matched: tierManifest.objects?.matched || 0, status: tierManifest.status });
+    tierSummaries.push({
+      ...tier,
+      newDates,
+      matched: tierManifest.objects?.matched || 0,
+      status: tierManifest.status,
+      objects: tierManifest.objects,
+      coverage: tierManifest.coverage,
+      errors: tierManifest.errors,
+      errorDetailsTruncated: tierManifest.errorDetailsTruncated || false,
+    });
 
     const isLastTier = tierIndex === AUTO_SCOPE_TIERS.length - 1;
     if (matchedSoFar > 0 || isLastTier) {
@@ -838,14 +929,16 @@ async function runAutoSearch(args, dependencies = {}) {
   }
 
   const manifest = {
-    status: finalExitCode === 0 ? 'complete' : 'incomplete',
-    query: args.query,
+    status: tierSummaries.some((tier) => tier.status === 'incomplete') ? 'incomplete' :
+      tierSummaries.filter((tier) => !tier.skipped).every((tier) => tier.status === 'no_objects') ? 'no_objects' :
+      finalExitCode === 0 ? 'complete' : 'incomplete',
+    query: { kind: args.query.kind },
+    selectFormat: args.selectFormat || null,
     anchor: { date: formatDate(anchor), note },
     tiers: tierSummaries,
     totalDatesSearched: [...triedDates].sort(),
     totalMatched: matchedSoFar,
     completedAt: new Date().toISOString(),
-    outputDir,
   };
   writeJson(path.join(outputDir, 'manifest.json'), manifest);
   console.log(JSON.stringify({
@@ -854,9 +947,8 @@ async function runAutoSearch(args, dependencies = {}) {
     tiersRun: tierSummaries.filter((t) => !t.skipped).length,
     totalDatesSearched: manifest.totalDatesSearched.length,
     totalMatched: matchedSoFar,
-    outputDir,
   }, null, 2));
-  return finalExitCode;
+  return manifest.status === 'complete' ? 0 : 2;
 }
 
 async function main(argv = process.argv.slice(2), dependencies = {}) {
@@ -871,10 +963,9 @@ async function cli() {
     process.exitCode = await main();
   } catch (error) {
     if (error instanceof ValidationError) {
-      console.error(`Error: ${error.message}`);
-      console.error(`Valid services: ${SERVICE_KEYS.join(', ')}, or all.`);
+      console.error('Invalid log search arguments. Run --help for valid options.');
     } else {
-      console.error(`Log search failed: ${error.message}`);
+      console.error(`Log search failed: ${safeError(error)}`);
     }
     process.exitCode = 1;
   }
