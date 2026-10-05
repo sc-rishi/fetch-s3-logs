@@ -39,6 +39,7 @@ const {
   COMPACT_JSONL, compactJsonLine, compactJsonSelectExpression, forEachSelectRecord, logInputStream, validateSelectComplete,
 } = require('./s3-search-utils');
 const { safeTimestamp } = require('./safe-evidence');
+const { redactSecrets, redactFreeText } = require('./redact-secrets');
 const {
   DEFAULT_SEARCH_DAYS,
   RAW_LINE_CSV,
@@ -150,6 +151,9 @@ function printHelpAndExit(code = 1) {
       '  --modified-after <ISO>     Only include S3 objects whose LastModified >= this (for non-date-partitioned',
       '                              prefixes, e.g. sc-integrations-jobs per-run logs)',
       '  --modified-before <ISO>    Only include S3 objects whose LastModified <= this',
+      '  --no-redact-secrets        Write raw credential values (access tokens, secrets, passwords,',
+      '                              cookies, JWTs) instead of "REDACTED". Redaction is ON by default;',
+      '                              only disable when you specifically need a credential value itself.',
       '  --help                     Show this help',
       '',
       'Examples:',
@@ -235,6 +239,7 @@ function parseArgs(argv) {
     forceGunzip: false,
     modifiedAfter: undefined,
     modifiedBefore: undefined,
+    redactSecrets: true,
   };
   for (let i = 2; i < argv.length; i += 1) {
     const a = argv[i];
@@ -298,6 +303,7 @@ function parseArgs(argv) {
     else if (a === '--select-format') args.selectFormat = argv[++i];
     else if (a === '--parse-message') args.parseMessage = true;
     else if (a === '--no-filter-text') args.noFilterText = true;
+    else if (a === '--no-redact-secrets') args.redactSecrets = false;
     else if (a === '--no-sort') args.noSort = true;
     else {
       throw new ValidationError('Unknown option; run --help for supported flags.');
@@ -557,7 +563,8 @@ async function writeFilteredLogsFromStreamToFile(
   parseMessage = false,
   rawFields = [],
   fileMode = 'w',
-  externalBuffer = null
+  externalBuffer = null,
+  redact = true
 ) {
   return new Promise((resolve, reject) => {
     let outStream;
@@ -718,9 +725,10 @@ async function writeFilteredLogsFromStreamToFile(
         try {
           let obj = parsedObj ?? JSON.parse(line);
           if (parseMessage) obj = tryParseNestedJsonFields(obj, rawFields);
+          if (redact) obj = redactSecrets(obj);
           outStream.write(`${JSON.stringify(obj, null, 2)},\n`);
         } catch {
-          const wrapped = { raw: line };
+          const wrapped = { raw: redact ? redactFreeText(line) : line };
           outStream.write(`${JSON.stringify(wrapped, null, 2)},\n`);
         }
         matches += 1;
@@ -753,14 +761,15 @@ async function writeFilteredLogsFromStreamToFile(
         for (const item of buffer) {
           try {
             if (item.obj) {
-              const outObj = parseMessage ? tryParseNestedJsonFields(item.obj, rawFields) : item.obj;
+              let outObj = parseMessage ? tryParseNestedJsonFields(item.obj, rawFields) : item.obj;
+              if (redact) outObj = redactSecrets(outObj);
               outStream.write(`${JSON.stringify(outObj, null, 2)},\n`);
             } else {
-              const wrapped = { raw: item.line };
+              const wrapped = { raw: redact ? redactFreeText(item.line) : item.line };
               outStream.write(`${JSON.stringify(wrapped, null, 2)},\n`);
             }
           } catch {
-            const wrapped = { raw: item.line };
+            const wrapped = { raw: redact ? redactFreeText(item.line) : item.line };
             outStream.write(`${JSON.stringify(wrapped, null, 2)},\n`);
           }
         }
@@ -833,7 +842,8 @@ async function processObject(
   externalBuffer = null,
   forceGunzip = false,
   selectFormat,
-  objectSize
+  objectSize,
+  redact = true
 ) {
   ensureDir(path.dirname(aggregatedOutPath));
 
@@ -867,7 +877,8 @@ async function processObject(
         parseMessage,
         rawFields,
         fileMode,
-        externalBuffer
+        externalBuffer,
+        redact
       );
       return { ...matched, method: 'select' };
     }
@@ -898,7 +909,8 @@ async function processObject(
     parseMessage,
     rawFields,
     fileMode,
-    externalBuffer
+    externalBuffer,
+    redact
   );
   return { ...matched, method };
 }
@@ -1219,7 +1231,8 @@ async function runForScope(s3, args) {
           globalBuffer,
           !!args.forceGunzip,
           args.selectFormat,
-          size
+          size,
+          args.redactSecrets
         )
           .then((result) => {
             manifest.objects.scanned += 1;
@@ -1260,13 +1273,16 @@ async function runForScope(s3, args) {
       for (const item of globalBuffer) {
         try {
           if (item.obj) {
-            const outObj = args.parseMessage ? tryParseNestedJsonFields(item.obj, args.rawFields) : item.obj;
+            let outObj = args.parseMessage ? tryParseNestedJsonFields(item.obj, args.rawFields) : item.obj;
+            if (args.redactSecrets) outObj = redactSecrets(outObj);
             outStream.write(`${JSON.stringify(outObj, null, 2)},\n`);
           } else {
-            outStream.write(`${JSON.stringify({ raw: item.line }, null, 2)},\n`);
+            const raw = args.redactSecrets ? redactFreeText(item.line) : item.line;
+            outStream.write(`${JSON.stringify({ raw }, null, 2)},\n`);
           }
         } catch {
-          outStream.write(`${JSON.stringify({ raw: item.line }, null, 2)},\n`);
+          const raw = args.redactSecrets ? redactFreeText(item.line) : item.line;
+          outStream.write(`${JSON.stringify({ raw }, null, 2)},\n`);
         }
       }
       await new Promise((resolve, reject) => {

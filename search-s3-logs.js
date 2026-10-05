@@ -26,6 +26,7 @@ const {
   writeJson,
 } = require('./s3-search-utils');
 const { exactMatchPaths, hashRef, loadEvidenceOptions, projectEvidence, safeError, safeTimestamp } = require('./safe-evidence');
+const { redactSecrets } = require('./redact-secrets');
 
 const DEFAULT_CONCURRENCY = 16;
 const MAX_CONCURRENCY = 50;
@@ -111,15 +112,20 @@ function help() {
     '  --validated-enums <file>  Source-derived event/status/code allowlist for safe evidence',
     '  --evidence-spec <file>    Reviewed source-derived evidence field mappings',
     '  --select-format compact-jsonl  Opt in only after verifying every source format for this case',
+    '  --no-redact-secrets    Write raw credential values (access tokens, secrets, passwords, cookies,',
+    '                          JWTs) into matches.jsonl/all-logs.filtered.log instead of "REDACTED".',
+    '                          Redaction is ON by default; only disable when you specifically need to',
+    '                          inspect a credential value itself (e.g. debugging a malformed token).',
     '  --help',
   ].join('\n'));
 }
 
 function parseArgs(argv) {
-  const args = { env: 'prod', concurrency: DEFAULT_CONCURRENCY };
+  const args = { env: 'prod', concurrency: DEFAULT_CONCURRENCY, redactSecrets: true };
   for (let index = 0; index < argv.length; index += 1) {
     const option = argv[index];
     if (option === '--help' || option === '-h') return { help: true };
+    if (option === '--no-redact-secrets') { args.redactSecrets = false; continue; }
     const value = argv[index + 1];
     if (!value || value.startsWith('--')) throw new ValidationError(`Missing value for ${option}`);
     if (option === '--tag') args.tag = value;
@@ -613,7 +619,7 @@ function writeMatches(outputDir, matches) {
   fs.writeFileSync(path.join(outputDir, 'all-logs.filtered.log'), compatible ? `${compatible}\n` : '', { mode: 0o600 });
 }
 
-async function appendMatchFile(result, matchesWriter, safeWriter, compatibleWriter, searchValue, evidenceOptions) {
+async function appendMatchFile(result, matchesWriter, safeWriter, compatibleWriter, searchValue, evidenceOptions, redact = true) {
   const reader = readline.createInterface({
     input: fs.createReadStream(result.matchPath),
     crlfDelay: Infinity,
@@ -622,7 +628,8 @@ async function appendMatchFile(result, matchesWriter, safeWriter, compatibleWrit
   let timeUnverified = 0;
   for await (const line of reader) {
     const match = matchEntry(result, line);
-    await matchesWriter.write(`${JSON.stringify(match)}\n`);
+    const rawMatch = redact ? redactSecrets(match) : match;
+    await matchesWriter.write(`${JSON.stringify(rawMatch)}\n`);
     const safeMatch = projectEvidence(match, { ...evidenceOptions, sourceAlias: match.service, queryValue: searchValue });
     if (match.timeStatus) safeMatch.timeStatus = match.timeStatus;
     if (match.timeStatus === 'unverified') timeUnverified += 1;
@@ -632,7 +639,7 @@ async function appendMatchFile(result, matchesWriter, safeWriter, compatibleWrit
       else safeMatch.correlation = 'substring-candidate';
     }
     await safeWriter.write(`${JSON.stringify(safeMatch)}\n`);
-    await compatibleWriter.write(`${JSON.stringify(match.log, null, 2)},\n`);
+    await compatibleWriter.write(`${JSON.stringify(rawMatch.log, null, 2)},\n`);
     count += 1;
   }
   return { count, timeUnverified };
@@ -735,7 +742,7 @@ async function runSearch(args, dependencies = {}) {
     }
     let written;
     try {
-      const appended = await appendMatchFile(result, matchesWriter, safeWriter, compatibleWriter, args.query.value, evidenceOptions);
+      const appended = await appendMatchFile(result, matchesWriter, safeWriter, compatibleWriter, args.query.value, evidenceOptions, args.redactSecrets);
       written = appended.count;
       manifest.lines.timeUnverified += appended.timeUnverified;
       coverage.timeUnverified = (coverage.timeUnverified || 0) + appended.timeUnverified;

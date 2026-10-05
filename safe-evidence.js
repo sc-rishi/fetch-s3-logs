@@ -13,6 +13,7 @@ const SAFE_ERROR_NAMES = new Set([
   'AccessDenied', 'CredentialsProviderError', 'ExpiredToken', 'InvalidAccessKeyId', 'InvalidObjectState',
   'NetworkError', 'NoSuchBucket', 'NoSuchKey', 'RequestTimeout', 'ServiceUnavailable',
   'SlowDown', 'ThrottlingException', 'TimeoutError', 'RedashHttpError', 'RedashProtocolError',
+  'MongoServerSelectionError', 'MongoNetworkError', 'MongoParseError', 'MongoServerError', 'MongoProtocolError',
 ]);
 const MAX_WHOLE_FILE_BYTES = 16 * 1024 * 1024;
 const MAX_VALIDATED_VALUES = 100;

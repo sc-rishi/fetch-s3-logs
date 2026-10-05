@@ -8,11 +8,12 @@ const SHA = 'a'.repeat(40);
 
 test('access check accepts selected probes and rejects incomplete or repeated input', () => {
   assert.deepEqual(parseArgs(['--repo', '../service', '--ref', 'rc-2026-09-30-hotfix', '--s3-url', 's3://bucket/day/', '--redash']), {
-    repo: '../service', ref: 'rc-2026-09-30-hotfix', s3Url: 's3://bucket/day/', redash: true,
+    repo: '../service', ref: 'rc-2026-09-30-hotfix', s3Url: 's3://bucket/day/', redash: true, mongoStaging: false,
   });
   assert.equal(parseArgs(['--repo', '../service', '--ref', 'production']).repo, '../service');
   assert.equal(parseArgs(['--s3-url', 's3://bucket/day/']).s3Url, 's3://bucket/day/');
   assert.equal(parseArgs(['--redash']).redash, true);
+  assert.equal(parseArgs(['--mongo-staging']).mongoStaging, true);
   assert.throws(() => parseArgs([]), /Usage:/);
   assert.throws(() => parseArgs(['--repo', '../service']), /Usage:/);
   assert.throws(() => parseArgs(['--ref', 'production']), /Usage:/);
@@ -21,6 +22,7 @@ test('access check accepts selected probes and rejects incomplete or repeated in
     ['--repo', '../one', '--ref', 'production', '--repo', '../two'],
     ['--s3-url', 's3://bucket/day/', '--s3-url', 's3://bucket/other/'],
     ['--redash', '--redash'],
+    ['--mongo-staging', '--mongo-staging'],
   ]) assert.throws(() => parseArgs(options), /Usage:/);
 });
 
@@ -88,6 +90,21 @@ test('combined probes run independently and omit Redash unless selected', async 
   assert.doesNotMatch(JSON.stringify(checked), /secret/);
 });
 
+test('combined probes run independently and omit staging Mongo unless selected', async () => {
+  const args = parseArgs(['--repo', '../service', '--ref', 'production', '--s3-url', 's3://bucket/day/']);
+  const dependencies = {
+    git: async (_program, args) => ({ stdout: args[2] === 'remote' ? 'git@github.com:smallcase/service.git\n'
+      : `${SHA}\trefs/heads/production\n` }),
+    s3: { send: async () => ({ Contents: [] }) },
+    checkMongoStaging: async () => { throw new Error('secret response body'); },
+  };
+  const omitted = await checkAccess(args, dependencies);
+  assert.equal(omitted.mongoStaging.status, 'not checked');
+  const checked = await checkAccess({ ...args, mongoStaging: true }, dependencies);
+  assert.equal(checked.mongoStaging.reason, 'mongo-staging-query-failed');
+  assert.doesNotMatch(JSON.stringify(checked), /secret/);
+});
+
 test('a failed Git ref does not hide successful S3 and Redash probes', async () => {
   const args = parseArgs(['--repo', '../service', '--ref', 'production', '--s3-url', 's3://bucket/day/', '--redash']);
   const results = await checkAccess(args, {
@@ -109,11 +126,11 @@ test('Git-only, S3-only, and Redash-only calls leave other probes not checked', 
     checkRedash: async () => ({ status: 'verified', reason: 'read-only-query-succeeded' }),
   };
   const git = await checkAccess(parseArgs(['--repo', '../service', '--ref', 'production']), dependencies);
-  assert.deepEqual(Object.values(git).map((result) => result.status), ['verified', 'not checked', 'not checked']);
+  assert.deepEqual(Object.values(git).map((result) => result.status), ['verified', 'not checked', 'not checked', 'not checked']);
   const s3 = await checkAccess(parseArgs(['--s3-url', 's3://bucket/day/']), dependencies);
-  assert.deepEqual(Object.values(s3).map((result) => result.status), ['not checked', 'verified', 'not checked']);
+  assert.deepEqual(Object.values(s3).map((result) => result.status), ['not checked', 'verified', 'not checked', 'not checked']);
   const redash = await checkAccess(parseArgs(['--redash']), dependencies);
-  assert.deepEqual(Object.values(redash).map((result) => result.status), ['not checked', 'not checked', 'verified']);
+  assert.deepEqual(Object.values(redash).map((result) => result.status), ['not checked', 'not checked', 'verified', 'not checked']);
   assert.ok([...Object.values(git), ...Object.values(s3), ...Object.values(redash)]
     .every((result) => result.reason && result.nextAction));
 });

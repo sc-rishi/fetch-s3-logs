@@ -86,11 +86,11 @@ function printHelpAndExit(code) {
   process.exit(code);
 }
 
-function parseArgs(argv) {
+function parseArgs(argv, onHelp = () => printHelpAndExit(0)) {
   const args = { limit: DEFAULT_RESULT_LIMIT };
   for (let i = 2; i < argv.length; i += 1) {
     const a = argv[i];
-    if (a === '--help' || a === '-h') printHelpAndExit(0);
+    if (a === '--help' || a === '-h') onHelp();
     if (!argv[i + 1] || argv[i + 1].startsWith('--')) throw new Error('Missing CLI option value.');
     else if (a === '--collection') args.collection = argv[++i];
     else if (a === '--tag') args.tag = argv[++i];
@@ -495,12 +495,15 @@ if (require.main === module) {
 module.exports = {
   buildMatch,
   checkRedashConnectivity,
+  DEFAULT_RESULT_LIMIT,
   findOrderAnchorDate,
   httpRequest,
   isConfigured,
   istDayEndUTC,
   istDayStartUTC,
+  loadEnvFile,
   main,
+  MAX_RESULT_LIMIT,
   parseArgs,
   requiresDateBound,
   runRedashQuery,

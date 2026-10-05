@@ -10,7 +10,7 @@ const execGit = promisify(execFile);
 const GIT_TIMEOUT_MS = 15000;
 const GIT_OUTPUT_LIMIT_BYTES = 1024 * 1024;
 const S3_PROBE_MAX_KEYS = 1;
-const USAGE = 'Usage: npm run access:check -- [--repo <path> --ref <branch>] [--s3-url <s3://bucket/prefix/>] [--redash]';
+const USAGE = 'Usage: npm run access:check -- [--repo <path> --ref <branch>] [--s3-url <s3://bucket/prefix/>] [--redash] [--mongo-staging]';
 const NEXT_ACTION = {
   'online-ref-found': 'Read the pinned SHA and verify the deployed revision before citing code.',
   'origin-is-not-github': 'Select the GitHub origin for this repository.',
@@ -26,6 +26,12 @@ const NEXT_ACTION = {
   RedashProtocolError: 'Check the Redash response before treating a query as empty.',
   RequestTimeout: 'Check Redash connectivity and retry the bounded read-only probe.',
   'read-only-query-succeeded': 'Use bounded read-only queries for relevant records.',
+  'mongo-staging-not-configured': 'Set MONGO_STAGING_URL before a staging DB check.',
+  MongoServerSelectionError: 'Check staging Mongo connectivity, network, and that the URL is reachable.',
+  MongoNetworkError: 'Check staging Mongo connectivity and network, then retry.',
+  MongoParseError: 'Check MONGO_STAGING_URL is a valid connection string.',
+  MongoServerError: 'Check your own staging Mongo credentials and permissions.',
+  MongoProtocolError: 'Check the staging Mongo response before treating a query as empty.',
 };
 
 function withAction(result) {
@@ -48,7 +54,7 @@ function githubRepoIdentity(remoteUrl) {
 }
 
 function parseArgs(argv) {
-  const args = { repo: undefined, ref: undefined, s3Url: undefined, redash: false };
+  const args = { repo: undefined, ref: undefined, s3Url: undefined, redash: false, mongoStaging: false };
   const seen = new Set();
   for (let index = 0; index < argv.length; index += 1) {
     const option = argv[index];
@@ -56,6 +62,10 @@ function parseArgs(argv) {
     seen.add(option);
     if (option === '--redash') {
       args.redash = true;
+      continue;
+    }
+    if (option === '--mongo-staging') {
+      args.mongoStaging = true;
       continue;
     }
     if (!['--repo', '--ref', '--s3-url'].includes(option) || !argv[index + 1] || argv[index + 1].startsWith('--')) {
@@ -67,7 +77,8 @@ function parseArgs(argv) {
     else args.s3Url = value;
     index += 1;
   }
-  if (Boolean(args.repo) !== Boolean(args.ref) || (!args.repo && !args.s3Url && !args.redash) ||
+  if (Boolean(args.repo) !== Boolean(args.ref) ||
+      (!args.repo && !args.s3Url && !args.redash && !args.mongoStaging) ||
       (args.s3Url && !parseS3Url(args.s3Url))) throw new Error(USAGE);
   return args;
 }
@@ -116,7 +127,9 @@ async function checkS3Prefix(s3Url, s3) {
 
 async function checkAccess(args, dependencies = {}) {
   const redashCheck = dependencies.checkRedash || (() => require('./redash-query').checkRedashConnectivity());
-  const [git, s3, redash] = await Promise.all([
+  const mongoStagingCheck = dependencies.checkMongoStaging ||
+    (() => require('./mongo-query').checkMongoStagingConnectivity());
+  const [git, s3, redash, mongoStaging] = await Promise.all([
     args.repo ? checkGitRef(args.repo, args.ref, dependencies.git) : Promise.resolve({
       status: 'not checked', reason: 'not-requested', nextAction: 'Pass --repo and --ref to check a Git branch.',
     }),
@@ -127,8 +140,12 @@ async function checkAccess(args, dependencies = {}) {
       .then(withAction).catch(() => withAction({ status: 'failed', reason: 'redash-query-failed' }))
       : Promise.resolve({ status: 'not checked', reason: 'not-requested',
         nextAction: 'Pass --redash when a database check is needed.' }),
+    args.mongoStaging ? Promise.resolve().then(mongoStagingCheck)
+      .then(withAction).catch(() => withAction({ status: 'failed', reason: 'mongo-staging-query-failed' }))
+      : Promise.resolve({ status: 'not checked', reason: 'not-requested',
+        nextAction: 'Pass --mongo-staging when a staging database check is needed.' }),
   ]);
-  return { git, s3, redash };
+  return { git, s3, redash, mongoStaging };
 }
 
 function printResults(results) {
