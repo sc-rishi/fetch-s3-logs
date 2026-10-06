@@ -94,6 +94,7 @@ const DEFAULTS = {
   // No .gz extension and no gzip Content-Type/Content-Encoding header — this script's auto-gunzip detection MISSES these
   // objects (verified live); do not point S3_URL here without also forcing gunzip, or you'll get raw binary garbage.
   // S3_URL: `s3://sc-prod-logs/sc-integrations-jobs/`, //ec2 production (jobs per-run stdout, needs forced gunzip)
+  // S3_URL: `s3://sc-stag-logs/sc-integrations-jobs/`, //staging (same per-run format as production, needs forced gunzip)
 
   OUT_DIR: './logs',
   IST: true,
