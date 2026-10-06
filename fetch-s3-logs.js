@@ -85,6 +85,7 @@ const DEFAULTS = {
   S3_URL: 's3://sc-eks-pod-logs/production/{date}/integrations/sc-integrations-order-updates-pod/',
   // S3_URL: `s3://sc-eks-pod-logs/production/${DATE}/integrations/sc-integrations-broker-api-pod/`, //eks production, use for recent dates
   // S3_URL: `s3://sc-eks-pod-logs/production/${DATE}/platform/sc-platform-api-pod/`, //eks production (current)
+  // S3_URL: `s3://sc-eks-pod-logs/production/${DATE}/integrations/sc-integrations-postback-interface-pod/`, //eks production, postback interface
   // S3_URL: `s3://sc-eks-pod-logs/staging/${DATE}/integrations/sc-integrations-order-updates-pod/`, //eks staging
   // S3_URL: `s3://sc-eks-pod-logs/staging/${DATE}/integrations/sc-integrations-broker-api-pod/`, //eks staging
   // S3_URL: `s3://sc-eks-pod-logs/staging/${DATE}/platform/sc-platform-api-pod/`, //eks staging
