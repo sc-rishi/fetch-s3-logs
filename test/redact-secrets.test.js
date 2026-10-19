@@ -21,6 +21,12 @@ test('redacts known secret keys but keeps correlation identifiers', () => {
   assert.equal(out.userId, 'xyz');
 });
 
+test('redacts the internal x-client-secret request header', () => {
+  const out = redactSecrets({ headers: { 'x-client-secret': 'live-secret', 'x-client-id': 'order-updates' } });
+  assert.equal(out.headers['x-client-secret'], 'REDACTED');
+  assert.equal(out.headers['x-client-id'], 'order-updates');
+});
+
 test('recurses into a nested stringified JSON field and redacts inside it', () => {
   const nested = JSON.stringify({ req: { body: { requestToken: '123', accessToken: 'live-secret' } } });
   const out = redactSecrets({ context: nested });

@@ -12,7 +12,7 @@ const SECRET_KEY_NAMES = [
   'apikey', 'api_key', 'apisecret', 'api_secret',
   'clientsecret', 'client_secret', 'privatekey', 'private_key',
   'encat', 'authorization', 'password', 'secret', 'jwt', 'cookie',
-  'x-sc-jwt', 'x-domain-token',
+  'x-sc-jwt', 'x-domain-token', 'x-client-secret',
 ];
 const SECRET_KEY_SET = new Set(SECRET_KEY_NAMES);
 
